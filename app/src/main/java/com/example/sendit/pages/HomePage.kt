@@ -1,7 +1,12 @@
 package com.example.sendit.pages
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,10 +16,15 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,7 +41,15 @@ fun HomePage(modifier: Modifier = Modifier) {
             userName = "John Doe",
             userImage = "https://picsum.photos/150",
             postImage = "https://picsum.photos/300",
-            postCaption = "Had a great day at the beach! 🌊☀️",
+            postCaption = "This is a really long piece of text to hopefully trigger the text wrap to " +
+                    "prevent extremely long posts from occupying the entire screen. Ideally, there " +
+                    "should be a word limit for this at around 100 or so characters but I still don't " +
+                    "know how to code in the modifier parameter just quite yet so hopefully this sample " +
+                    "text will do the job. As of writing this text the wrapping feature seems to not " +
+                    "be working implying that a word limit is required to prevent such a long and boring " +
+                    "caption to a post, obviously there will be a word limit on the 'Add Post' when the " +
+                    "user creates it or people would probably post the entire Bee Movie script or " +
+                    "something odd like that. ",
             timeStamp = "2h ago"
         ),
         DataType(
@@ -121,13 +139,31 @@ fun PostCard(post: DataType) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
+
             // Caption
-            Text(text = post.postCaption, fontSize = 14.sp)
+            Row{
+                var showMore by remember { mutableStateOf(false) }
+
+                Column(modifier = Modifier.animateContentSize(animationSpec = tween(100))
+                    .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                            ){ showMore = !showMore}) {
+                        if(showMore){
+                            Text(text = post.postCaption, fontSize = 14.sp)
+                        } else {
+                            Text(text = post.postCaption, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        }
+                }
+            }
 
             // Spacer
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Row
             Row {
+
+                // Likes
                 IconButton(onClick = {/*Todo*/}) {
                     Icon(
                         imageVector = Icons.Outlined.FavoriteBorder,
@@ -135,8 +171,11 @@ fun PostCard(post: DataType) {
                         modifier = Modifier.size(24.dp)
                     )
                 }
+
+                // Like Counter
                 Text(text = "100", modifier = Modifier.align(alignment = Alignment.CenterVertically))
 
+                // Comments
                 IconButton(onClick = {/*Todo*/}) {
                     Icon(
                         imageVector = Icons.Outlined.Edit,
@@ -144,8 +183,11 @@ fun PostCard(post: DataType) {
                         modifier = Modifier.size(24.dp)
                     )
                 }
+
+                // Comments Counter
                 Text(text = "100", modifier = Modifier.align(alignment = Alignment.CenterVertically))
 
+                //
                 IconButton(onClick = {/*Todo*/}) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Outlined.Send,
@@ -156,7 +198,7 @@ fun PostCard(post: DataType) {
 
             }
 
-
+            Text(text = "2 Days Ago")
         }
     }
 }
