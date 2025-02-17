@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.sendit.pages.AIPage
 import com.example.sendit.pages.AddPage
 import com.example.sendit.pages.ChatPage
 import com.example.sendit.pages.HomePage
@@ -50,8 +51,8 @@ fun ActionBars(modifier: Modifier = Modifier) {
     val navItemList = listOf(
         NavItem("Home", Icons.Default.Home),
         NavItem("Search", Icons.Default.Search),
-        NavItem("Add", Icons.Default.Add),
-        NavItem("Profile", Icons.Default.Person)
+        NavItem("AI", Icons.Default.Person),
+        NavItem("Profile", Icons.Default.AccountBox)
     )
 
     var selectedIndex by remember {
@@ -75,14 +76,14 @@ fun ActionBars(modifier: Modifier = Modifier) {
                 )
             },
             actions = {
-                IconButton(onClick = { selectedIndex = 4 }) {
+                IconButton(onClick = { selectedIndex = 5 }) {
                     Icon(
                         imageVector = Icons.Outlined.FavoriteBorder,
                         contentDescription = "Home",
                         modifier = Modifier.size(24.dp)
                     )
                 }
-                IconButton(onClick = { selectedIndex = 5 }) {
+                IconButton(onClick = { selectedIndex = 6 }) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Outlined.Send,
                         contentDescription = "Home",
@@ -130,9 +131,10 @@ fun ContentScreen(modifier: Modifier = Modifier, selectedIndex: Int) {
     when (selectedIndex) {
         0 -> HomePage(modifier)
         1 -> SearchPage()
-        2 -> AddPage()
+        2 -> AIPage()
         3 -> ProfilePage()
-        4 -> LikePage()
-        5 -> ChatPage()
+        4 -> AddPage()
+        5 -> LikePage()
+        6 -> ChatPage()
     }
 }
