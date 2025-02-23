@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
@@ -51,6 +52,7 @@ fun ActionBars(modifier: Modifier = Modifier) {
     val navItemList = listOf(
         NavItem("Home", Icons.Default.Home),
         NavItem("Search", Icons.Default.Search),
+        NavItem("Add", Icons.Default.Add),
         NavItem("AI", Icons.Default.Person),
         NavItem("Profile", Icons.Default.AccountBox)
     )
@@ -131,9 +133,9 @@ fun ContentScreen(modifier: Modifier = Modifier, selectedIndex: Int) {
     when (selectedIndex) {
         0 -> HomePage(modifier)
         1 -> SearchPage()
-        2 -> AIPage()
-        3 -> ProfilePage()
-        4 -> AddPage()
+        2 -> AddPage()
+        3 -> AIPage()
+        4 -> ProfilePage()
         5 -> LikePage()
         6 -> ChatPage()
     }
