@@ -1,4 +1,4 @@
-package com.example.sendit.pages
+package com.example.sendit.pages.interaction
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

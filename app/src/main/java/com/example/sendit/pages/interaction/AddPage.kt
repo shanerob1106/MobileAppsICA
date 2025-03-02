@@ -1,4 +1,4 @@
-package com.example.sendit.pages
+package com.example.sendit.pages.interaction
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -42,9 +42,10 @@ fun AddPage(modifier: Modifier = Modifier) {
 
     var captionText by remember { mutableStateOf("") }
     val result = remember { mutableStateOf<List<Uri?>?>(null) }
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) {
-        result.value = it
-    }
+    val launcher =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) {
+            result.value = it
+        }
 
     Column(
         modifier = modifier
@@ -53,7 +54,7 @@ fun AddPage(modifier: Modifier = Modifier) {
             .padding(10.dp),
         verticalArrangement = Arrangement.Top,
     ) {
-        Column(horizontalAlignment = Alignment.Start){
+        Column(horizontalAlignment = Alignment.Start) {
             // Page Title
             Text(
                 text = "New Post",
@@ -64,11 +65,11 @@ fun AddPage(modifier: Modifier = Modifier) {
 
             // Image browser button
             Button(
-                    onClick = {
-                        launcher.launch(
-                            PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
-                    }) {
+                onClick = {
+                    launcher.launch(
+                        PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                }) {
                 Text(text = "Select Images")
             }
         }
@@ -78,16 +79,18 @@ fun AddPage(modifier: Modifier = Modifier) {
                 .fillMaxSize()
                 .padding(10.dp),
             verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.CenterHorizontally){
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             // Hide post elements
-            if (result.value == null)
-            {
-                Text(text = "Select an image",
-                    modifier = Modifier.padding(10.dp))
+            if (result.value == null) {
+                Text(
+                    text = "Select an image",
+                    modifier = Modifier.padding(10.dp)
+                )
             } else {
                 result.value?.let { images ->
                     LazyRow(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp)) {
-                        items(images){
+                        items(images) {
                             //Use Coil to display the selected image
                             val painter = rememberAsyncImagePainter(
                                 ImageRequest
@@ -98,7 +101,9 @@ fun AddPage(modifier: Modifier = Modifier) {
                             Image(
                                 painter = painter,
                                 contentDescription = null,
-                                modifier = Modifier.size(150.dp, 150.dp).padding(5.dp),
+                                modifier = Modifier
+                                    .size(150.dp, 150.dp)
+                                    .padding(5.dp),
                                 contentScale = ContentScale.Crop
                             )
                         }
@@ -110,11 +115,11 @@ fun AddPage(modifier: Modifier = Modifier) {
                 ) {
                     OutlinedTextField(
                         value = captionText,
-                        onValueChange = {captionText = it},
-                        label = {Text ("Add A Caption...")},
+                        onValueChange = { captionText = it },
+                        label = { Text("Add A Caption...") },
                     )
                     Button(
-                        onClick = {/*Todo*/},
+                        onClick = {/*Todo*/ },
                     ) {
                         Text(text = "Post")
                     }

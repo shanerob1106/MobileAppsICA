@@ -1,4 +1,4 @@
-package com.example.sendit.pages
+package com.example.sendit.pages.account
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -9,13 +9,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun ChatPage(modifier: Modifier = Modifier) {
+fun ProfilePage(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -24,7 +23,7 @@ fun ChatPage(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Chat Page",
+            text = "Profile Page",
             fontSize = 40.sp,
             fontWeight = FontWeight.SemiBold,
             style = TextStyle(color = MaterialTheme.colorScheme.primary)
