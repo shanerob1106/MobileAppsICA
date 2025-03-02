@@ -1,6 +1,10 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+
+    // Firestore plugins
+//    id("com.android.application")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -51,9 +55,16 @@ android {
 
 dependencies {
 
+    // Coil
     implementation("io.coil-kt.coil3:coil-compose:3.0.4")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")
+
+    // Jetpack Compose
     implementation("androidx.navigation:navigation-compose:2.7.5")
+
+    // Firestore
+    implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
