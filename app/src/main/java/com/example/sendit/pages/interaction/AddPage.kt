@@ -1,8 +1,10 @@
 package com.example.sendit.pages.interaction
 
 import android.content.ContentValues.TAG
+import android.content.Context
 import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,18 +38,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
-import com.google.firebase.auth.FirebaseAuth
+import com.example.sendit.navigation.Screen
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import java.util.UUID
+import java.time.LocalTime
+import java.util.Date
 
 @Preview
 @Composable
-fun AddPage(modifier: Modifier = Modifier) {
+fun AddPage(
+    navController: NavController? = null,
+    modifier: Modifier = Modifier
+) {
 
+    val context = LocalContext.current
     var captionText by remember { mutableStateOf("") }
     val result = remember { mutableStateOf<List<Uri?>?>(null) }
     val launcher =
@@ -126,7 +136,11 @@ fun AddPage(modifier: Modifier = Modifier) {
                         label = { Text("Add A Caption...") },
                     )
                     Button(
-                        onClick = {addContent(captionText)},
+                        onClick = {
+                            if (navController != null) {
+                                addContent(captionText, context, navController)
+                            }
+                        },
                     ) {
                         Text(text = "Post")
                     }
@@ -136,35 +150,43 @@ fun AddPage(modifier: Modifier = Modifier) {
     }
 }
 
-fun addContent(content: String) {
-
-    lateinit var auth: FirebaseAuth
-    auth = Firebase.auth
-
-    // Connection to Firebase
+fun addContent(content: String, context: Context, navController: NavController) {
+    val auth = Firebase.auth
     val db = Firebase.firestore
-    var ID = UUID.randomUUID().toString()
+    val userId = auth.currentUser?.uid
 
-    val post = hashMapOf(
-        "ID" to ID,
-        "name" to "Shane",
-        "caption" to content,
-        "time" to "Today"
-    )
+    if(userId != null) {
+        val post = hashMapOf(
+            "name" to "Shane",
+            "caption" to content,
+            "date" to Date().toString(),
+            "time" to LocalTime.now().toString(),
+            "likes" to 0,
+            "comments" to emptyList<String>(),
+            "location" to "Somewhere", /*Todo: Add location data GPS?*/
+            "tags" to emptyList<String>()
+        )
 
-    val userID = auth.currentUser?.uid
-    Log.d(TAG, "UserID: $userID")
+        db.collection("users").document(userId).collection("posts")
+            .add(post)
+            .addOnSuccessListener { documentReference ->
+                Log.d(TAG, "DocumentSnapshot added with ID: ${documentReference.id}")
+                Toast.makeText(context, "Post Added", Toast.LENGTH_SHORT).show()
 
-    // POST: Push content to Firestore
-    // Auto generate ID
-    val newPost = db.collection("users").document("$userID")
-        .set(post)
-        .addOnSuccessListener { documentReference ->
-            Log.d(TAG, "DocumentSnapshot added with ID: ${documentReference}")
-        }
-        .addOnFailureListener{ e ->
-            Log.w(TAG, "Error adding document", e)
-        }
+                // Simplified navigation approach
+                navController.navigate(Screen.Home.route) {
+                    // Clear the back stack so we don't build up a history of add screens
+                    popUpTo(Screen.Home.route) { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.w(TAG, "Error adding document", e)
+                Toast.makeText(context, "Post Failed", Toast.LENGTH_SHORT).show()
+            }
+    } else {
+        Log.w(TAG, "User not authenticated.")
+    }
 }
 
 

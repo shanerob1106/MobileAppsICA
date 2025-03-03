@@ -57,7 +57,7 @@ fun SendItNavHost(
         }
 
         composable(Screen.Add.route) {
-            AddPage()
+            AddPage(navController = navController)
         }
 
         composable(Screen.AI.route) {
