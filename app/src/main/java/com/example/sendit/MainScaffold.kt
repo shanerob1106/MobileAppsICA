@@ -39,7 +39,7 @@ fun MainScaffold(
         }
     }
 
-    // Show bars only if user is logged in and not on login screen
+    // Show bars on all screens except login screen
     val showBars = isUserLoggedIn && currentRoute != Screen.Login.route
 
     Scaffold(
@@ -62,4 +62,3 @@ fun MainScaffold(
         )
     }
 }
-
