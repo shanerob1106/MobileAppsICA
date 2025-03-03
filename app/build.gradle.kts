@@ -81,5 +81,6 @@ dependencies {
     // Firestore
     implementation(platform("com.google.firebase:firebase-bom:32.0.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
-//    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+
 }

@@ -1,6 +1,6 @@
 package com.example.sendit.data
 
-data class DataType(
+data class PostData(
     val postId: String,
     val userName: String,
     val userImage: String,

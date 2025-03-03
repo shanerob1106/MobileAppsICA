@@ -42,14 +42,20 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import com.example.sendit.data.DataType
+import com.example.sendit.data.PostData
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 @Preview
 @Composable
 fun HomePage(modifier: Modifier = Modifier) {
 
+    // Firestore
+    val db = Firebase.firestore
+
+    // Sample list of posts (Hard-coded bad practise lol)
     val posts = listOf(
-        DataType(
+        PostData(
             postId = "1",
             userName = "John Doe",
             userImage = "https://picsum.photos/150",
@@ -65,7 +71,7 @@ fun HomePage(modifier: Modifier = Modifier) {
                     "something odd like that. ",
             timeStamp = "2h ago"
         ),
-        DataType(
+        PostData(
             postId = "2",
             userName = "Jane Smith",
             userImage = "https://picsum.photos/150",
@@ -73,7 +79,7 @@ fun HomePage(modifier: Modifier = Modifier) {
             postCaption = "Loving this new book I'm reading! 📚",
             timeStamp = "5h ago"
         ),
-        DataType(
+        PostData(
             postId = "3",
             userName = "Doe John",
             userImage = "https://picsum.photos/150",
@@ -81,7 +87,7 @@ fun HomePage(modifier: Modifier = Modifier) {
             postCaption = "Loving this new book I'm reading! 📚",
             timeStamp = "5h ago"
         ),
-        DataType(
+        PostData(
             postId = "4",
             userName = "Smith Jane",
             userImage = "https://picsum.photos/150",
@@ -105,7 +111,7 @@ fun HomePage(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun PostCard(post: DataType) {
+fun PostCard(post: PostData) {
     Card(
         modifier = Modifier
             .fillMaxWidth()

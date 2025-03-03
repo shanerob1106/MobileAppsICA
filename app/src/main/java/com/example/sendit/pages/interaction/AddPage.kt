@@ -1,6 +1,8 @@
 package com.example.sendit.pages.interaction
 
+import android.content.ContentValues.TAG
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -35,6 +37,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
+import java.util.UUID
 
 @Preview
 @Composable
@@ -119,7 +126,7 @@ fun AddPage(modifier: Modifier = Modifier) {
                         label = { Text("Add A Caption...") },
                     )
                     Button(
-                        onClick = {/*Todo*/ },
+                        onClick = {addContent(captionText)},
                     ) {
                         Text(text = "Post")
                     }
@@ -127,6 +134,37 @@ fun AddPage(modifier: Modifier = Modifier) {
             }
         }
     }
+}
+
+fun addContent(content: String) {
+
+    lateinit var auth: FirebaseAuth
+    auth = Firebase.auth
+
+    // Connection to Firebase
+    val db = Firebase.firestore
+    var ID = UUID.randomUUID().toString()
+
+    val post = hashMapOf(
+        "ID" to ID,
+        "name" to "Shane",
+        "caption" to content,
+        "time" to "Today"
+    )
+
+    val userID = auth.currentUser?.uid
+    Log.d(TAG, "UserID: $userID")
+
+    // POST: Push content to Firestore
+    // Auto generate ID
+    val newPost = db.collection("users").document("$userID")
+        .set(post)
+        .addOnSuccessListener { documentReference ->
+            Log.d(TAG, "DocumentSnapshot added with ID: ${documentReference}")
+        }
+        .addOnFailureListener{ e ->
+            Log.w(TAG, "Error adding document", e)
+        }
 }
 
 
