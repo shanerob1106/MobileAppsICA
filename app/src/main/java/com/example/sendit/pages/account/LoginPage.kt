@@ -32,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 @Composable
 fun LoginPage(onLoginSuccess: () -> Unit) {
@@ -40,8 +42,39 @@ fun LoginPage(onLoginSuccess: () -> Unit) {
     var passwordString by remember { mutableStateOf("") }
     var isRegistering by remember { mutableStateOf(false) }
     var confirmPasswordString by remember { mutableStateOf("") }
+
+    // New profile setup fields
+    var firstNameString by remember { mutableStateOf("") }
+    var lastNameString by remember { mutableStateOf("") }
+    var bioString by remember { mutableStateOf("") }
+    var usernameString by remember { mutableStateOf("") }
+
     val context = LocalContext.current
-    val auth = FirebaseAuth.getInstance()  // Get Firebase Auth instance
+    val auth = FirebaseAuth.getInstance()
+    val db = Firebase.firestore
+
+    // Validation function
+    fun validateRegistrationFields(): Boolean {
+        return when {
+            emailString.isEmpty() -> {
+                Toast.makeText(context, "Email cannot be empty", Toast.LENGTH_SHORT).show()
+                false
+            }
+            passwordString.isEmpty() -> {
+                Toast.makeText(context, "Password cannot be empty", Toast.LENGTH_SHORT).show()
+                false
+            }
+            passwordString != confirmPasswordString -> {
+                Toast.makeText(context, "Passwords don't match", Toast.LENGTH_SHORT).show()
+                false
+            }
+            isRegistering && (firstNameString.isEmpty() || lastNameString.isEmpty() || usernameString.isEmpty()) -> {
+                Toast.makeText(context, "Please fill all required fields", Toast.LENGTH_SHORT).show()
+                false
+            }
+            else -> true
+        }
+    }
 
     // Main Column
     Column(
@@ -90,6 +123,47 @@ fun LoginPage(onLoginSuccess: () -> Unit) {
         if (isRegistering) {
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Additional profile setup fields
+            OutlinedTextField(
+                value = firstNameString,
+                onValueChange = { firstNameString = it },
+                label = { Text("First Name") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = lastNameString,
+                onValueChange = { lastNameString = it },
+                label = { Text("Last Name") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = usernameString,
+                onValueChange = { usernameString = it },
+                label = { Text("Username") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = bioString,
+                onValueChange = { bioString = it },
+                label = { Text("Bio") },
+                modifier = Modifier.fillMaxWidth(),
+                maxLines = 3
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             OutlinedTextField(
                 value = confirmPasswordString,
                 onValueChange = { confirmPasswordString = it },
@@ -106,17 +180,44 @@ fun LoginPage(onLoginSuccess: () -> Unit) {
         Button(
             onClick = {
                 if (isRegistering) {
-                    // Registration logic
-                    if (emailString.isNotEmpty() && passwordString.isNotEmpty() && passwordString == confirmPasswordString) {
+                    // Registration logic with profile creation
+                    if (validateRegistrationFields()) {
                         auth.createUserWithEmailAndPassword(emailString, passwordString)
                             .addOnCompleteListener { task ->
                                 if (task.isSuccessful) {
-                                    Toast.makeText(
-                                        context,
-                                        "Account created successfully!",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    onLoginSuccess()
+                                    // Get the current user's UID
+                                    val userId = auth.currentUser?.uid
+
+                                    if (userId != null) {
+                                        // Create user profile in Firestore
+                                        val userProfile = hashMapOf(
+                                            "email" to emailString,
+                                            "firstName" to firstNameString,
+                                            "lastName" to lastNameString,
+                                            "username" to usernameString,
+                                            "bio" to bioString,
+                                            "profilePictureUrl" to "", // Optional: can be updated later
+                                            "joinedDate" to com.google.firebase.Timestamp.now()
+                                        )
+
+                                        db.collection("users").document(userId)
+                                            .set(userProfile)
+                                            .addOnSuccessListener {
+                                                Toast.makeText(
+                                                    context,
+                                                    "Account created successfully!",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                                onLoginSuccess()
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Toast.makeText(
+                                                    context,
+                                                    "Profile creation failed: ${e.message}",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                    }
                                 } else {
                                     Toast.makeText(
                                         context,
@@ -125,10 +226,6 @@ fun LoginPage(onLoginSuccess: () -> Unit) {
                                     ).show()
                                 }
                             }
-                    } else if (passwordString != confirmPasswordString) {
-                        Toast.makeText(context, "Passwords don't match", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
                     }
                 } else {
                     // Login logic
@@ -178,9 +275,13 @@ fun LoginPage(onLoginSuccess: () -> Unit) {
             OutlinedButton(
                 onClick = {
                     isRegistering = !isRegistering
-                    // Clear password fields when switching modes
+                    // Clear all fields when switching modes
                     passwordString = ""
                     confirmPasswordString = ""
+                    firstNameString = ""
+                    lastNameString = ""
+                    usernameString = ""
+                    bioString = ""
                 }
             ) {
                 Text(text = if (isRegistering) "Log In" else "Sign Up")
