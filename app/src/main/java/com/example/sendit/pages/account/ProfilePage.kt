@@ -179,7 +179,10 @@ fun ProfilePage(modifier: Modifier = Modifier) {
 
             // More Info Column E.g., Real name and BIO
             Column(modifier = Modifier.padding(10.dp)) {
-                Text(text = "$fName $lName")
+                Text(text = "$fName $lName",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    style = TextStyle(color = MaterialTheme.colorScheme.primary))
                 ExpandableText(userBio)
             }
         }

@@ -197,11 +197,14 @@ fun LoginPage(onLoginSuccess: () -> Unit) {
                                         // Create user profile in Firestore
                                         val userProfile = hashMapOf(
                                             "email" to emailString,
+                                            "profilePictureUrl" to "",
                                             "firstName" to firstNameString,
                                             "lastName" to lastNameString,
                                             "username" to usernameString,
+                                            "posts" to 0,
+                                            "followers" to emptyList<String>(),
+                                            "following" to emptyList<String>(),
                                             "bio" to bioString,
-                                            "profilePictureUrl" to "", // Optional: can be updated later
                                             "joinedDate" to com.google.firebase.Timestamp.now()
                                         )
 

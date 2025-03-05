@@ -157,8 +157,7 @@ fun addContent(content: String, context: Context, navController: NavController) 
         val post = hashMapOf(
             "name" to "Shane",
             "caption" to content,
-            "date" to Date().toString(),
-            "time" to LocalTime.now().toString(),
+            "timePosted" to com.google.firebase.Timestamp.now(),
             "likes" to 0,
             "comments" to emptyList<String>(),
             "location" to "Somewhere", /*Todo: Add location data GPS?*/
