@@ -24,7 +24,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,7 +38,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import com.example.sendit.navigation.Screen
@@ -155,7 +153,7 @@ fun addContent(content: String, context: Context, navController: NavController) 
     val db = Firebase.firestore
     val userId = auth.currentUser?.uid
 
-    if(userId != null) {
+    if (userId != null) {
         val post = hashMapOf(
             "name" to "Shane",
             "caption" to content,

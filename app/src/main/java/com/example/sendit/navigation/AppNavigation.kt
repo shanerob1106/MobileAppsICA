@@ -58,7 +58,11 @@ fun TopAppBar(navController: NavController) {
                     restoreState = true
                 }
             }) {
-                Icon(imageVector = Icons.Outlined.FavoriteBorder, contentDescription = "Likes", modifier = Modifier.size(24.dp))
+                Icon(
+                    imageVector = Icons.Outlined.FavoriteBorder,
+                    contentDescription = "Likes",
+                    modifier = Modifier.size(24.dp)
+                )
             }
 
             IconButton(onClick = {
@@ -70,7 +74,11 @@ fun TopAppBar(navController: NavController) {
                     restoreState = true
                 }
             }) {
-                Icon(imageVector = Icons.AutoMirrored.Outlined.Send, contentDescription = "Chat", modifier = Modifier.size(24.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.Send,
+                    contentDescription = "Chat",
+                    modifier = Modifier.size(24.dp)
+                )
             }
         },
         colors = TopAppBarColors(

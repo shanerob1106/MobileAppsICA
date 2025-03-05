@@ -60,18 +60,23 @@ fun LoginPage(onLoginSuccess: () -> Unit) {
                 Toast.makeText(context, "Email cannot be empty", Toast.LENGTH_SHORT).show()
                 false
             }
+
             passwordString.isEmpty() -> {
                 Toast.makeText(context, "Password cannot be empty", Toast.LENGTH_SHORT).show()
                 false
             }
+
             passwordString != confirmPasswordString -> {
                 Toast.makeText(context, "Passwords don't match", Toast.LENGTH_SHORT).show()
                 false
             }
+
             isRegistering && (firstNameString.isEmpty() || lastNameString.isEmpty() || usernameString.isEmpty()) -> {
-                Toast.makeText(context, "Please fill all required fields", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Please fill all required fields", Toast.LENGTH_SHORT)
+                    .show()
                 false
             }
+
             else -> true
         }
     }
