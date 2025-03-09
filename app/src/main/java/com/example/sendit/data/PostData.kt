@@ -6,5 +6,7 @@ data class PostData(
     val userImage: String,
     val postImage: String,
     val postCaption: String,
-    val timeStamp: String
+    val timeStamp: String,
+    val likes: Int = 0,
+    val comments: Int = 0,
 )
