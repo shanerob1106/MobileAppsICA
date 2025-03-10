@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -43,7 +45,7 @@ fun ProfilePage(modifier: Modifier = Modifier) {
     val userId = auth.currentUser?.uid
 
     // Mutable states to store Firestore data
-    var userName by remember { mutableStateOf("") } // Mutable state to trigger recomposition
+    var userName by remember { mutableStateOf("") }
     var fName by remember { mutableStateOf("") }
     var lName by remember { mutableStateOf("") }
     var userBio by remember { mutableStateOf("") }
@@ -51,6 +53,7 @@ fun ProfilePage(modifier: Modifier = Modifier) {
     var followersCount by remember { mutableIntStateOf(0) }
     var followingCount by remember { mutableIntStateOf(0) }
 
+    // List of Posts as PostData Object
     var posts by remember { mutableStateOf(emptyList<PostData>()) }
 
     // Ensures the Firestore call runs only when the composable launches
@@ -59,7 +62,6 @@ fun ProfilePage(modifier: Modifier = Modifier) {
             db.collection("users").document(userId).get()
                 .addOnSuccessListener { document ->
                     if (document != null && document.exists()) {
-                        Log.d("ProfilePage", "DocumentSnapshot data: ${document.data}")
                         userName = document.getString("username") ?: "No Name Found"
                         userBio = document.getString("bio") ?: "No Bio Found"
                         fName = document.getString("firstName") ?: "No First Name Found"
@@ -69,14 +71,17 @@ fun ProfilePage(modifier: Modifier = Modifier) {
                         val following = document.get("following") as? List<*>
                         val followers = document.get("followers") as? List<*>
 
+                        // Get the following count
                         if (following != null) {
                             followingCount = following.size
                         }
 
+                        // Get the followers count
                         if (followers != null) {
                             followersCount = followers.size
                         }
 
+                        // Get the content of the posts
                         db.collection("users").document(userId).collection("posts")
                             .get()
                             .addOnSuccessListener { querySnapshot ->
@@ -90,15 +95,13 @@ fun ProfilePage(modifier: Modifier = Modifier) {
 
                                     PostData(
                                         postId = postId,
-                                        userName = userName,       // Empty since not needed now
-                                        userImage = "",      // Empty since not needed now
-                                        postImage = "",      // Empty since not needed now
+                                        userName = userName,
+                                        userImage = "",     // No user profile
+                                        postImage = "",     // No post image(s)
                                         postCaption = postCaption,
                                         timeStamp = timeStamp
                                     )
                                 }
-
-                                Log.d("ProfilePage", "Post: $posts")
                             }
                             .addOnFailureListener { exception ->
                                 Log.d("ProfilePage", "Error getting posts: ", exception)
@@ -126,9 +129,10 @@ fun ProfilePage(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // Card to display profile page
         Card(
@@ -238,10 +242,8 @@ fun ProfilePage(modifier: Modifier = Modifier) {
             }
         }
 
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            items(posts.size) { index ->
-                PostCard(post = posts[index])
-            }
+        for(posts in posts) {
+            PostCard(post = posts)
         }
     }
 }
