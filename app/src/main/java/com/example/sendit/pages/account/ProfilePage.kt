@@ -32,6 +32,8 @@ import com.example.sendit.data.PostData
 import com.example.sendit.helpers.ExpandableText
 import com.example.sendit.helpers.PostCard
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
@@ -246,3 +248,24 @@ fun ProfilePage(modifier: Modifier = Modifier) {
         }
     }
 }
+
+//fun getPostsOrderedByTime(userId: String, callback: (List<Post>) -> Unit) {
+//    val db = FirebaseFirestore.getInstance()
+//    db.collection("posts")
+//        .whereEqualTo("userId", userId) // Assuming you have a userId field
+//        .orderBy("timePosted", Query.Direction.DESCENDING) // Order by timePosted, newest first
+//        .get()
+//        .addOnSuccessListener { documents ->
+//            val posts = mutableListOf<Post>()
+//            for (document in documents) {
+//                val post = document.toObject(Post::class.java)
+//                posts.add(post)
+//            }
+//            callback(posts)
+//        }
+//        .addOnFailureListener { exception ->
+//            // Handle errors
+//            println("Error getting documents: $exception")
+//            callback(emptyList()) // Return an empty list on failure
+//        }
+//}
