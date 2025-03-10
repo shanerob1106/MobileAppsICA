@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
@@ -31,7 +30,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.sendit.data.PostData
 import com.example.sendit.helpers.ExpandableText
-import com.example.sendit.pages.PostCard
+import com.example.sendit.helpers.PostCard
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -90,7 +89,7 @@ fun ProfilePage(modifier: Modifier = Modifier) {
                                 posts = querySnapshot.documents.mapNotNull { document ->
                                     val postId = document.id  // Document ID as Post ID
                                     val postCaption = document.getString("caption") ?: "No caption"
-                                    val timeStamp = document.getTimestamp("timePosted").toString()
+                                    val timeStamp = document.getTimestamp("timePosted")
                                     val userName = document.getString("name") ?: "No Name"
 
                                     PostData(
