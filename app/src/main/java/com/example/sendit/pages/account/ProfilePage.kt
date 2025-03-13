@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,18 +28,20 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import coil3.compose.AsyncImage
 import com.example.sendit.data.PostData
 import com.example.sendit.helpers.ExpandableText
 import com.example.sendit.helpers.PostCard
+import com.example.sendit.navigation.Screen
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
 @Composable
-fun ProfilePage(modifier: Modifier = Modifier) {
+fun ProfilePage(modifier: Modifier = Modifier, navController: NavController) {
 
     // Firestore
     val db = Firebase.firestore
@@ -62,7 +65,6 @@ fun ProfilePage(modifier: Modifier = Modifier) {
         if (userId != null) {
             db.collection("users").document(userId).get()
                 .addOnSuccessListener { document ->
-                    if (document != null && document.exists()) {
                         userName = document.getString("username") ?: "No Name Found"
                         userBio = document.getString("bio") ?: "No Bio Found"
                         fName = document.getString("firstName") ?: "No First Name Found"
@@ -108,20 +110,9 @@ fun ProfilePage(modifier: Modifier = Modifier) {
                                 Log.d("ProfilePage", "Error getting posts: ", exception)
                             }
 
-                    } else {
-                        Log.d("ProfilePage", "No such document")
-                        userName = "User not found"
-                        userBio = "Bio not found"
-                        fName = "First Name not found"
-                        lName = "Last Name not found"
-                    }
                 }
                 .addOnFailureListener { exception ->
                     Log.d("ProfilePage", "get failed with ", exception)
-                    userName = "Error loading profile"
-                    userBio = "Error loading profile"
-                    fName = "Error loading profile"
-                    lName = "Error loading profile"
                 }
         }
     }
@@ -240,32 +231,25 @@ fun ProfilePage(modifier: Modifier = Modifier) {
                     style = TextStyle(color = MaterialTheme.colorScheme.primary)
                 )
                 ExpandableText(userBio)
+
+                Button(
+                    onClick= {
+                        FirebaseAuth.getInstance().signOut()
+                        navController.navigate("login") {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                inclusive = true
+                            }
+                        }
+                    },
+                    modifier = Modifier.padding(16.dp).fillMaxWidth()
+                ) {
+                    Text(text = "Sign Out")
+                }
             }
         }
 
-        for(posts in posts) {
-            PostCard(post = posts)
+        for(post in posts) {
+            PostCard(post = post)
         }
     }
 }
-
-//fun getPostsOrderedByTime(userId: String, callback: (List<Post>) -> Unit) {
-//    val db = FirebaseFirestore.getInstance()
-//    db.collection("posts")
-//        .whereEqualTo("userId", userId) // Assuming you have a userId field
-//        .orderBy("timePosted", Query.Direction.DESCENDING) // Order by timePosted, newest first
-//        .get()
-//        .addOnSuccessListener { documents ->
-//            val posts = mutableListOf<Post>()
-//            for (document in documents) {
-//                val post = document.toObject(Post::class.java)
-//                posts.add(post)
-//            }
-//            callback(posts)
-//        }
-//        .addOnFailureListener { exception ->
-//            // Handle errors
-//            println("Error getting documents: $exception")
-//            callback(emptyList()) // Return an empty list on failure
-//        }
-//}

@@ -151,9 +151,11 @@ fun addContent(content: String, context: Context, navController: NavController) 
     val db = Firebase.firestore
     val userId = auth.currentUser?.uid
 
+    val username = auth.currentUser?.displayName
+
     if (userId != null) {
         val post = hashMapOf(
-            "name" to "Shane",
+            "name" to username,
             "caption" to content,
             "timePosted" to com.google.firebase.Timestamp.now(),
             "likes" to 0,

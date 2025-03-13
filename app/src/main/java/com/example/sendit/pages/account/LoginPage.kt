@@ -217,6 +217,13 @@ fun LoginPage(onLoginSuccess: () -> Unit) {
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                                 onLoginSuccess()
+
+                                                // set display name
+                                                auth.currentUser?.updateProfile(
+                                                    com.google.firebase.auth.UserProfileChangeRequest.Builder()
+                                                        .setDisplayName(usernameString)
+                                                        .build()
+                                                )
                                             }
                                             .addOnFailureListener { e ->
                                                 Toast.makeText(

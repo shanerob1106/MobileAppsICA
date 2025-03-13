@@ -64,7 +64,7 @@ fun SendItNavHost(
         }
 
         composable(Screen.Profile.route) {
-            ProfilePage()
+            ProfilePage(navController = navController)
         }
 
         composable(Screen.Likes.route) {
