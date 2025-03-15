@@ -92,7 +92,7 @@ fun HomePage(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        for(post in posts) {
+        for (post in posts) {
             PostCard(post = post)
         }
     }

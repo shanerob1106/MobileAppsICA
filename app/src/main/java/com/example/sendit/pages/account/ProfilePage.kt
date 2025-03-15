@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -34,7 +35,6 @@ import coil3.compose.AsyncImage
 import com.example.sendit.data.PostData
 import com.example.sendit.helpers.ExpandableText
 import com.example.sendit.helpers.PostCard
-import com.example.sendit.navigation.Screen
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
@@ -65,50 +65,50 @@ fun ProfilePage(modifier: Modifier = Modifier, navController: NavController) {
         if (userId != null) {
             db.collection("users").document(userId).get()
                 .addOnSuccessListener { document ->
-                        userName = document.getString("username") ?: "No Name Found"
-                        userBio = document.getString("bio") ?: "No Bio Found"
-                        fName = document.getString("firstName") ?: "No First Name Found"
-                        lName = document.getString("lastName") ?: "No Last Name Found"
+                    userName = document.getString("username") ?: "No Name Found"
+                    userBio = document.getString("bio") ?: "No Bio Found"
+                    fName = document.getString("firstName") ?: "No First Name Found"
+                    lName = document.getString("lastName") ?: "No Last Name Found"
 
-                        // Get length of following and followers array
-                        val following = document.get("following") as? List<*>
-                        val followers = document.get("followers") as? List<*>
+                    // Get length of following and followers array
+                    val following = document.get("following") as? List<*>
+                    val followers = document.get("followers") as? List<*>
 
-                        // Get the following count
-                        if (following != null) {
-                            followingCount = following.size
-                        }
+                    // Get the following count
+                    if (following != null) {
+                        followingCount = following.size
+                    }
 
-                        // Get the followers count
-                        if (followers != null) {
-                            followersCount = followers.size
-                        }
+                    // Get the followers count
+                    if (followers != null) {
+                        followersCount = followers.size
+                    }
 
-                        // Get the content of the posts
-                        db.collection("users").document(userId).collection("posts")
-                            .get()
-                            .addOnSuccessListener { querySnapshot ->
-                                postCount = querySnapshot.size()
+                    // Get the content of the posts
+                    db.collection("users").document(userId).collection("posts")
+                        .get()
+                        .addOnSuccessListener { querySnapshot ->
+                            postCount = querySnapshot.size()
 
-                                posts = querySnapshot.documents.mapNotNull { document ->
-                                    val postId = document.id  // Document ID as Post ID
-                                    val postCaption = document.getString("caption") ?: "No caption"
-                                    val timeStamp = document.getTimestamp("timePosted")
-                                    val userName = document.getString("name") ?: "No Name"
+                            posts = querySnapshot.documents.mapNotNull { document ->
+                                val postId = document.id  // Document ID as Post ID
+                                val postCaption = document.getString("caption") ?: "No caption"
+                                val timeStamp = document.getTimestamp("timePosted")
+                                val userName = document.getString("name") ?: "No Name"
 
-                                    PostData(
-                                        postId = postId,
-                                        userName = userName,
-                                        userImage = "",     // No user profile
-                                        postImage = "",     // No post image(s)
-                                        postCaption = postCaption,
-                                        timeStamp = timeStamp
-                                    )
-                                }
+                                PostData(
+                                    postId = postId,
+                                    userName = userName,
+                                    userImage = "",     // No user profile
+                                    postImage = "",     // No post image(s)
+                                    postCaption = postCaption,
+                                    timeStamp = timeStamp
+                                )
                             }
-                            .addOnFailureListener { exception ->
-                                Log.d("ProfilePage", "Error getting posts: ", exception)
-                            }
+                        }
+                        .addOnFailureListener { exception ->
+                            Log.d("ProfilePage", "Error getting posts: ", exception)
+                        }
 
                 }
                 .addOnFailureListener { exception ->
@@ -135,15 +135,6 @@ fun ProfilePage(modifier: Modifier = Modifier, navController: NavController) {
             Column(
                 modifier = Modifier.padding(10.dp)
             ) {
-                // Username
-                Text(
-                    text = userName,
-                    fontSize = 40.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    style = TextStyle(color = MaterialTheme.colorScheme.primary),
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
-
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -151,72 +142,84 @@ fun ProfilePage(modifier: Modifier = Modifier, navController: NavController) {
                 ) {
                     // Profile Image
                     AsyncImage(
-                        model = "https://picsum.photos/100",
+                        model = "https://picsum.photos/150",
                         contentDescription = "User Profile Image",
                         modifier = Modifier
-                            .size(100.dp)
+                            .size(150.dp)
                             .padding(5.dp)
+                            .clip(shape = MaterialTheme.shapes.extraLarge)
                     )
 
-                    // Stats Row
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 10.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        // Post Count
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = postCount.toString(),
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                style = TextStyle(color = MaterialTheme.colorScheme.primary)
-                            )
-                            Text(
-                                text = "Posts",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
+                    Column{
+                        // Username
+                        Text(
+                            text = userName,
+                            fontSize = 40.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            style = TextStyle(color = MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.padding(10.dp).align(Alignment.CenterHorizontally)
+                        )
 
-                        // Followers Count
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                        // Stats Row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            Text(
-                                text = followersCount.toString(),
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                style = TextStyle(color = MaterialTheme.colorScheme.primary)
-                            )
-                            Text(
-                                text = "Followers",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
+                            // Post Count
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = postCount.toString(),
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    style = TextStyle(color = MaterialTheme.colorScheme.primary)
+                                )
+                                Text(
+                                    text = "Posts",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
 
-                        // Following Count
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = followingCount.toString(),
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                style = TextStyle(color = MaterialTheme.colorScheme.primary)
-                            )
-                            Text(
-                                text = "Following",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            // Followers Count
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = followersCount.toString(),
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    style = TextStyle(color = MaterialTheme.colorScheme.primary)
+                                )
+                                Text(
+                                    text = "Followers",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+
+                            // Following Count
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = followingCount.toString(),
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    style = TextStyle(color = MaterialTheme.colorScheme.primary)
+                                )
+                                Text(
+                                    text = "Following",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
                     }
                 }
@@ -233,7 +236,7 @@ fun ProfilePage(modifier: Modifier = Modifier, navController: NavController) {
                 ExpandableText(userBio)
 
                 Button(
-                    onClick= {
+                    onClick = {
                         FirebaseAuth.getInstance().signOut()
                         navController.navigate("login") {
                             popUpTo(navController.graph.findStartDestination().id) {
@@ -241,14 +244,16 @@ fun ProfilePage(modifier: Modifier = Modifier, navController: NavController) {
                             }
                         }
                     },
-                    modifier = Modifier.padding(16.dp).fillMaxWidth()
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth()
                 ) {
                     Text(text = "Sign Out")
                 }
             }
         }
 
-        for(post in posts) {
+        for (post in posts) {
             PostCard(post = post)
         }
     }
