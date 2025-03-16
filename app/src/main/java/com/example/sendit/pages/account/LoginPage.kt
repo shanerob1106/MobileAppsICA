@@ -201,7 +201,6 @@ fun LoginPage(onLoginSuccess: () -> Unit) {
                                             "firstName" to firstNameString,
                                             "lastName" to lastNameString,
                                             "username" to usernameString,
-                                            "posts" to 0,
                                             "followers" to emptyList<String>(),
                                             "following" to emptyList<String>(),
                                             "bio" to bioString,

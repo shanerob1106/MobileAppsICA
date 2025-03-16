@@ -52,7 +52,7 @@ fun SendItNavHost(
         }
 
         composable(Screen.Search.route) {
-            SearchPage()
+            SearchPage(navController = navController)
         }
 
         composable(Screen.Add.route) {
@@ -63,8 +63,9 @@ fun SendItNavHost(
             AIPage()
         }
 
-        composable(Screen.Profile.route) {
-            ProfilePage(navController = navController)
+        composable(Screen.Profile.route + "/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")
+            ProfilePage(navController = navController, profileUserId = userId)
         }
 
         composable(Screen.Likes.route) {

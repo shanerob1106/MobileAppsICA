@@ -41,12 +41,17 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
 @Composable
-fun ProfilePage(modifier: Modifier = Modifier, navController: NavController) {
+fun ProfilePage(
+    modifier: Modifier = Modifier,
+    navController: NavController,
+    profileUserId: String? = null
+) {
 
     // Firestore
     val db = Firebase.firestore
     val auth = Firebase.auth
-    val userId = auth.currentUser?.uid
+    val userId = profileUserId ?: auth.currentUser?.uid
+    val currentUserId = auth.currentUser?.uid
 
     // Mutable states to store Firestore data
     var userName by remember { mutableStateOf("") }
@@ -150,14 +155,16 @@ fun ProfilePage(modifier: Modifier = Modifier, navController: NavController) {
                             .clip(shape = MaterialTheme.shapes.extraLarge)
                     )
 
-                    Column{
+                    Column {
                         // Username
                         Text(
                             text = userName,
                             fontSize = 40.sp,
                             fontWeight = FontWeight.SemiBold,
                             style = TextStyle(color = MaterialTheme.colorScheme.primary),
-                            modifier = Modifier.padding(10.dp).align(Alignment.CenterHorizontally)
+                            modifier = Modifier
+                                .padding(10.dp)
+                                .align(Alignment.CenterHorizontally)
                         )
 
                         // Stats Row
@@ -235,20 +242,32 @@ fun ProfilePage(modifier: Modifier = Modifier, navController: NavController) {
                 )
                 ExpandableText(userBio)
 
-                Button(
-                    onClick = {
-                        FirebaseAuth.getInstance().signOut()
-                        navController.navigate("login") {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                inclusive = true
+                // Follow Button
+                if (profileUserId == currentUserId) {
+                    Button(
+                        onClick = {
+                            FirebaseAuth.getInstance().signOut()
+                            navController.navigate("login") {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    inclusive = true
+                                }
                             }
-                        }
-                    },
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth()
-                ) {
-                    Text(text = "Sign Out")
+                        },
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth()
+                    ) {
+                        Text(text = "Sign Out")
+                    }
+                } else {
+                    Button(
+                        onClick = {/*Todo: Follow Button Logic*/ },
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth()
+                    ) {
+                        Text(text = "Follow")
+                    }
                 }
             }
         }

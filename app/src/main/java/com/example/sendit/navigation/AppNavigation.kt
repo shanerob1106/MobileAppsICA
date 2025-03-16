@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 
 data class BottomNavItem(
     val label: String,
@@ -93,32 +95,35 @@ fun TopAppBar(navController: NavController) {
 
 @Composable
 fun BottomNavigationBar(navController: NavController) {
+
+    // Get the current user's ID
+    val auth = Firebase.auth
+    val userId = auth.currentUser?.uid
+
+    // Bottom Navigation Items
     val items = listOf(
         BottomNavItem("Home", Icons.Default.Home, Screen.Home.route),
         BottomNavItem("Search", Icons.Default.Search, Screen.Search.route),
         BottomNavItem("Add", Icons.Default.Add, Screen.Add.route),
         BottomNavItem("AI", Icons.Default.Person, Screen.AI.route),
-        BottomNavItem("Profile", Icons.Default.AccountBox, Screen.Profile.route)
+        BottomNavItem("Profile", Icons.Default.AccountBox, Screen.Profile.route + "/${userId}")
     )
 
+    // Get the current route
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    // Bottom Navigation
     NavigationBar {
         items.forEach { item ->
             NavigationBarItem(
                 selected = currentRoute == item.route,
                 onClick = {
-                    // Force navigation to work from any screen
-                    // This is the key change - we're making navigation more direct
                     navController.navigate(item.route) {
-                        // Pop up to the start destination of the graph
                         popUpTo(navController.graph.findStartDestination().id) {
                             saveState = true
                         }
-                        // Avoid multiple copies of the same destination
                         launchSingleTop = true
-                        // Restore state when reselecting a previously selected item
                         restoreState = true
                     }
                 },

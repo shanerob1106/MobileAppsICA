@@ -49,7 +49,6 @@ import com.google.firebase.ktx.Firebase
 @Composable
 fun AddPage(
     navController: NavController? = null,
-    modifier: Modifier = Modifier
 ) {
 
     val context = LocalContext.current
@@ -61,7 +60,7 @@ fun AddPage(
         }
 
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
             .padding(10.dp),
