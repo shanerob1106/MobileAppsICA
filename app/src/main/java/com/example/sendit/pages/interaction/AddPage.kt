@@ -44,6 +44,7 @@ import com.example.sendit.navigation.Screen
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.storage.ktx.storage
 
 @Preview
 @Composable
@@ -100,6 +101,7 @@ fun AddPage(
                     modifier = Modifier.padding(10.dp)
                 )
             } else {
+                // Show images once selected
                 result.value?.let { images ->
                     LazyRow(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp)) {
                         items(images) {
@@ -121,6 +123,7 @@ fun AddPage(
                         }
                     }
                 }
+
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
@@ -131,9 +134,18 @@ fun AddPage(
                         label = { Text("Add A Caption...") },
                     )
                     Button(
+
                         onClick = {
-                            if (navController != null) {
-                                addContent(captionText, context, navController)
+                            val images = result.value ?: emptyList()
+                            if (images.isNotEmpty()) {
+                                uploadImages(images, context) { imageUrls ->
+                                    if (navController != null) {
+                                        addContent(captionText, imageUrls, context, navController)
+                                    }
+                                }
+                            } else {
+                                Toast.makeText(context, "No images selected", Toast.LENGTH_SHORT)
+                                    .show()
                             }
                         },
                     ) {
@@ -145,17 +157,56 @@ fun AddPage(
     }
 }
 
-fun addContent(content: String, context: Context, navController: NavController) {
+fun uploadImages(
+    imageUris: List<Uri?>,
+    context: Context,
+    onComplete: (List<String>) -> Unit
+) {
+    val storage = Firebase.storage
+    val auth = Firebase.auth
+    val userId = auth.currentUser?.uid ?: return
+    val imageUrls = mutableListOf<String>()
+
+    var uploadedCount = 0
+
+    imageUris.forEachIndexed { index, uri ->
+        if (uri == null) return@forEachIndexed
+
+        val fileName = "images/${userId}_${System.currentTimeMillis()}_${index}.jpg"
+        val storageRef = storage.reference.child(fileName)
+
+        storageRef.putFile(uri)
+            .addOnSuccessListener {
+                storageRef.downloadUrl.addOnSuccessListener { downloadUrl ->
+                    imageUrls.add(downloadUrl.toString())
+                    uploadedCount++
+                    if (uploadedCount == imageUris.size) {
+                        onComplete(imageUrls)
+                    }
+                }
+            }
+            .addOnFailureListener {
+                Toast.makeText(context, "Upload Failed", Toast.LENGTH_SHORT).show()
+            }
+    }
+}
+
+fun addContent(
+    content: String,
+    imageUrls: List<String>,
+    context: Context,
+    navController: NavController
+) {
     val auth = Firebase.auth
     val db = Firebase.firestore
     val userId = auth.currentUser?.uid
-
     val username = auth.currentUser?.displayName
 
     if (userId != null) {
         val post = hashMapOf(
             "name" to username,
             "caption" to content,
+            "postImages" to imageUrls,
             "timePosted" to com.google.firebase.Timestamp.now(),
             "likes" to 0,
             "comments" to emptyList<String>(),
@@ -166,18 +217,14 @@ fun addContent(content: String, context: Context, navController: NavController) 
         db.collection("users").document(userId).collection("posts")
             .add(post)
             .addOnSuccessListener { documentReference ->
-                Log.d(TAG, "DocumentSnapshot added with ID: ${documentReference.id}")
                 Toast.makeText(context, "Post Added", Toast.LENGTH_SHORT).show()
 
-                // Simplified navigation approach
                 navController.navigate(Screen.Home.route) {
-                    // Clear the back stack so we don't build up a history of add screens
                     popUpTo(Screen.Home.route) { inclusive = true }
                     launchSingleTop = true
                 }
             }
             .addOnFailureListener { e ->
-                Log.w(TAG, "Error adding document", e)
                 Toast.makeText(context, "Post Failed", Toast.LENGTH_SHORT).show()
             }
     } else {

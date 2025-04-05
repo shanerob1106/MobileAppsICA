@@ -3,6 +3,7 @@ package com.example.sendit.pages.account
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -55,6 +56,7 @@ fun ProfilePage(
 
     // Mutable states to store Firestore data
     var userName by remember { mutableStateOf("") }
+    var userImage by remember { mutableStateOf("") }
     var fName by remember { mutableStateOf("") }
     var lName by remember { mutableStateOf("") }
     var userBio by remember { mutableStateOf("") }
@@ -71,6 +73,7 @@ fun ProfilePage(
             db.collection("users").document(userId).get()
                 .addOnSuccessListener { document ->
                     userName = document.getString("username") ?: "No Name Found"
+                    userImage = document.getString("image") ?: "No Image Found"
                     userBio = document.getString("bio") ?: "No Bio Found"
                     fName = document.getString("firstName") ?: "No First Name Found"
                     lName = document.getString("lastName") ?: "No Last Name Found"
@@ -95,8 +98,10 @@ fun ProfilePage(
                         .addOnSuccessListener { querySnapshot ->
                             postCount = querySnapshot.size()
 
-                            posts = querySnapshot.documents.mapNotNull { document ->
+                            val unsortedPosts = querySnapshot.documents.mapNotNull { document ->
                                 val postId = document.id  // Document ID as Post ID
+                                val postImages = document.get("postImages") as? List<String>
+                                    ?: emptyList<String>()
                                 val postCaption = document.getString("caption") ?: "No caption"
                                 val timeStamp = document.getTimestamp("timePosted")
                                 val userName = document.getString("name") ?: "No Name"
@@ -105,11 +110,13 @@ fun ProfilePage(
                                     postId = postId,
                                     userName = userName,
                                     userImage = "",     // No user profile
-                                    postImage = "",     // No post image(s)
+                                    postImages = postImages,     // No post image(s)
                                     postCaption = postCaption,
                                     timeStamp = timeStamp
                                 )
                             }
+
+                            posts = unsortedPosts.sortedByDescending { it.timeStamp }
                         }
                         .addOnFailureListener { exception ->
                             Log.d("ProfilePage", "Error getting posts: ", exception)
@@ -145,15 +152,37 @@ fun ProfilePage(
                         .fillMaxWidth()
                         .padding(top = 15.dp)
                 ) {
-                    // Profile Image
-                    AsyncImage(
-                        model = "https://picsum.photos/150",
-                        contentDescription = "User Profile Image",
-                        modifier = Modifier
-                            .size(150.dp)
-                            .padding(5.dp)
-                            .clip(shape = MaterialTheme.shapes.extraLarge)
-                    )
+                    if (userImage.isNotEmpty()) {
+                        // Placeholder with first character of username
+                        Box(
+                            modifier = Modifier
+                                .size(150.dp)
+                                .background(
+                                    // Generate consistent color based on username
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = MaterialTheme.shapes.small
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = userName.firstOrNull()?.toString() ?: "?",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
+                            )
+                        }
+
+                    } else {
+                        // Profile Image
+                        AsyncImage(
+                            model = userImage,
+                            contentDescription = "User Profile Image",
+                            modifier = Modifier
+                                .size(150.dp)
+                                .padding(5.dp)
+                                .clip(shape = MaterialTheme.shapes.extraLarge)
+                        )
+                    }
 
                     Column {
                         // Username

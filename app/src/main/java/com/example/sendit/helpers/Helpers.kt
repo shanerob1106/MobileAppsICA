@@ -2,16 +2,24 @@ package com.example.sendit.helpers
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
@@ -30,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -69,32 +78,59 @@ fun ExpandableText(text: String, modifier: Modifier = Modifier, fontSize: TextUn
 @Composable
 fun PostCard(post: PostData) {
 
+    // Snap image to middle of screen
+    val lazyListState = rememberLazyListState()
+    val snapBehaviour = rememberSnapFlingBehavior(lazyListState = lazyListState)
+
     // Card Element
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(5.dp),
+            .padding(vertical = 5.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.primaryContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
 
         // Main Column
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(10.dp)) {
 
             // User Info Row
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // User Profile Image
-                AsyncImage(
-                    model = post.userImage,
-                    contentDescription = "User Image",
-                    modifier = Modifier
-                        .size(40.dp)
-                        .padding(4.dp)
-                )
+                // User Profile Image or Placeholder
+                if (post.userImage.isNotEmpty()) {
+                    // Real user image
+                    AsyncImage(
+                        model = post.userImage,
+                        contentDescription = "User Image",
+                        modifier = Modifier
+                            .size(40.dp)
+                            .padding(4.dp)
+                            .clip(shape = MaterialTheme.shapes.small),
+                    )
+                } else {
+                    // Placeholder with first character of username
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(
+                                // Generate consistent color based on username
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = MaterialTheme.shapes.small
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = post.userName.firstOrNull()?.toString() ?: "?",
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.width(8.dp))
 
                 // Username
@@ -108,15 +144,33 @@ fun PostCard(post: PostData) {
             }
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Post Image
-            AsyncImage(
-                model = post.postImage,
-                contentDescription = "Post Image",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-            )
+            // Post Images
+            LazyRow(
+                state = lazyListState,
+                flingBehavior = snapBehaviour,
+                contentPadding = PaddingValues(horizontal = 0.dp), // No manual edge padding
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(post.postImages.size) { index ->
+                    val imageUrl = post.postImages[index]
+                    Box(
+                        modifier = Modifier
+                            .fillParentMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = "Post Image ${index + 1}",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(1f),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
 
             // Post Caption

@@ -39,7 +39,7 @@ fun HomePage(modifier: Modifier = Modifier) {
             .get()
             .addOnSuccessListener { usersSnapshot ->
                 val allPosts = mutableListOf<PostData>()
-                val totalUsers = usersSnapshot.size()
+                val totalPosts = usersSnapshot.size()
                 var processedUsers = 0
 
                 for (userDoc in usersSnapshot) {
@@ -52,6 +52,8 @@ fun HomePage(modifier: Modifier = Modifier) {
                         .addOnSuccessListener { postsSnapshot ->
                             val userPosts = postsSnapshot.documents.mapNotNull { document ->
                                 val postId = document.id
+                                val postImages = document.get("postImages") as? List<String>
+                                    ?: emptyList<String>()
                                 val postCaption = document.getString("caption") ?: "No caption"
                                 val timeStamp = document.getTimestamp("timePosted")
                                 val userName = userDoc.getString("username") ?: "Unknown User"
@@ -60,7 +62,7 @@ fun HomePage(modifier: Modifier = Modifier) {
                                     postId = postId,
                                     userName = userName,
                                     userImage = "",     // No user profile image
-                                    postImage = "",     // No post image(s)
+                                    postImages = postImages,     // No post image(s)
                                     postCaption = postCaption,
                                     timeStamp = timeStamp
                                 )
@@ -69,7 +71,7 @@ fun HomePage(modifier: Modifier = Modifier) {
                             allPosts.addAll(userPosts)
 
                             processedUsers++
-                            if (processedUsers == totalUsers) {
+                            if (processedUsers == totalPosts) {
                                 posts = allPosts.sortedByDescending { it.timeStamp }
                             }
                         }
