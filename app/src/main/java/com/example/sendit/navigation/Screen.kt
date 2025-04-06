@@ -12,7 +12,9 @@ import com.example.sendit.pages.interaction.AIPage
 import com.example.sendit.pages.interaction.AddPage
 import com.example.sendit.pages.interaction.ChatPage
 import com.example.sendit.pages.interaction.LikePage
+import com.example.sendit.pages.interaction.MapScreen
 import com.example.sendit.pages.interaction.SearchPage
+import com.example.sendit.pages.interaction.returnSelectedLocation
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
@@ -23,6 +25,7 @@ sealed class Screen(val route: String) {
     object Profile : Screen("profile")
     object Likes : Screen("likes")
     object Chat : Screen("chat")
+    object Map : Screen("map")
 }
 
 
@@ -74,6 +77,11 @@ fun SendItNavHost(
 
         composable(Screen.Chat.route) {
             ChatPage()
+        }
+        composable(Screen.Map.route) {
+            MapScreen {lat, lng ->
+                returnSelectedLocation(navController, lat, lng)
+            }
         }
     }
 }

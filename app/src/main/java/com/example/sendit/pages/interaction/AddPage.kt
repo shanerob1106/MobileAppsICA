@@ -1,235 +1,231 @@
 package com.example.sendit.pages.interaction
 
-import android.content.ContentValues.TAG
 import android.content.Context
 import android.net.Uri
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import com.example.sendit.navigation.Screen
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 
-@Preview
 @Composable
-fun AddPage(
-    navController: NavController? = null,
-) {
-
+fun AddPage(navController: NavController) {
     val context = LocalContext.current
-    var captionText by remember { mutableStateOf("") }
-    val result = remember { mutableStateOf<List<Uri?>?>(null) }
+
+    var captionText by rememberSaveable { mutableStateOf("") }
+    val imageUris = rememberSaveable { mutableStateOf<List<Uri?>?>(null) }
+
+    var selectedLatitude by rememberSaveable { mutableStateOf(0.0) }
+    var selectedLongitude by rememberSaveable { mutableStateOf(0.0) }
+    var isLocationSelected by rememberSaveable { mutableStateOf(false) }
+
+    var hasLaunchedPicker by rememberSaveable { mutableStateOf(false) }
+
+    var isUploading by rememberSaveable { mutableStateOf(false) }
+
     val launcher =
         rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) {
-            result.value = it
+            imageUris.value = it
         }
+
+    LaunchedEffect(Unit) {
+        if (!hasLaunchedPicker && imageUris.value == null) {
+            hasLaunchedPicker = true
+            launcher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        }
+    }
+
+    val currentBackStackEntry = navController.currentBackStackEntryAsState().value
+    LaunchedEffect(currentBackStackEntry) {
+        currentBackStackEntry?.savedStateHandle?.get<Pair<Double, Double>?>("location")
+            ?.let { (lat, lng) ->
+                selectedLatitude = lat
+                selectedLongitude = lng
+                isLocationSelected = true
+                currentBackStackEntry.savedStateHandle.remove<Pair<Double, Double>>("location")
+            }
+    }
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(10.dp),
-        verticalArrangement = Arrangement.Top,
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(horizontalAlignment = Alignment.Start) {
-            // Page Title
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+
             Text(
-                text = "New Post",
-                fontSize = 25.sp,
-                fontWeight = FontWeight.SemiBold,
-                style = TextStyle(color = MaterialTheme.colorScheme.primary),
+                text = "Create Post",
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
             )
 
-            // Image browser button
-            Button(
-                onClick = {
-                    launcher.launch(
-                        PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly)
+            imageUris.value?.takeIf { it.isNotEmpty() }?.let { images ->
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(images) { uri ->
+                        val painter = rememberAsyncImagePainter(
+                            ImageRequest.Builder(context).data(uri).build()
+                        )
+                        Image(
+                            painter = painter,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(120.dp)
+                                .padding(vertical = 4.dp),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = captionText,
+                    onValueChange = { captionText = it },
+                    label = { Text("Add a caption...") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Button(
+                    onClick = {
+                        navController.navigate("map")
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("📍 Select Location")
+                }
+
+                if (isLocationSelected) {
+                    Text(
+                        text = "Selected Location: ($selectedLatitude, $selectedLongitude)",
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(top = 6.dp)
                     )
-                }) {
-                Text(text = "Select Images")
-            }
+                }
+            } ?: Text("Please select images to begin.")
         }
 
-        Column(
+        Button(
+            onClick = {
+                val images = imageUris.value ?: return@Button
+                if (images.isNotEmpty() && !isUploading) {
+                    isUploading = true
+                    uploadAndPost(
+                        imageUris = images,
+                        caption = captionText,
+                        context = context,
+                        navController = navController,
+                        latitude = selectedLatitude,
+                        longitude = selectedLongitude,
+                        onComplete = { success ->
+                            isUploading = false
+                            if (!success) {
+                                Toast.makeText(context, "Upload failed. Try again.", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
+                } else if (isUploading) {
+                    Toast.makeText(context, "Already uploading...", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "Select at least one image.", Toast.LENGTH_SHORT).show()
+                }
+            },
             modifier = Modifier
-                .fillMaxSize()
-                .padding(10.dp),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxWidth()
+                .height(55.dp),
+            enabled = !isUploading
         ) {
-            // Hide post elements
-            if (result.value == null) {
-                Text(
-                    text = "Select an image",
-                    modifier = Modifier.padding(10.dp)
+            if (isUploading) {
+                CircularProgressIndicator(
+                    color = Color.White,
+                    modifier = Modifier.size(24.dp),
+                    strokeWidth = 2.dp
                 )
             } else {
-                // Show images once selected
-                result.value?.let { images ->
-                    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp)) {
-                        items(images) {
-                            //Use Coil to display the selected image
-                            val painter = rememberAsyncImagePainter(
-                                ImageRequest
-                                    .Builder(LocalContext.current)
-                                    .data(data = it)
-                                    .build()
-                            )
-                            Image(
-                                painter = painter,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(150.dp, 150.dp)
-                                    .padding(5.dp),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                    }
-                }
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    OutlinedTextField(
-                        value = captionText,
-                        onValueChange = { captionText = it },
-                        label = { Text("Add A Caption...") },
-                    )
-                    Button(
-
-                        onClick = {
-                            val images = result.value ?: emptyList()
-                            if (images.isNotEmpty()) {
-                                uploadImages(images, context) { imageUrls ->
-                                    if (navController != null) {
-                                        addContent(captionText, imageUrls, context, navController)
-                                    }
-                                }
-                            } else {
-                                Toast.makeText(context, "No images selected", Toast.LENGTH_SHORT)
-                                    .show()
-                            }
-                        },
-                    ) {
-                        Text(text = "Post")
-                    }
-                }
+                Text("🚀 Share")
             }
         }
+
     }
 }
 
-fun uploadImages(
+fun uploadAndPost(
     imageUris: List<Uri?>,
+    caption: String,
     context: Context,
-    onComplete: (List<String>) -> Unit
+    navController: NavController?,
+    latitude: Double,
+    longitude: Double,
+    onComplete: (Boolean) -> Unit
 ) {
     val storage = Firebase.storage
     val auth = Firebase.auth
+    val db = Firebase.firestore
     val userId = auth.currentUser?.uid ?: return
-    val imageUrls = mutableListOf<String>()
+    val username = auth.currentUser?.displayName ?: "Anonymous"
+    val uploadedUrls = mutableListOf<String>()
 
-    var uploadedCount = 0
-
+    var completed = 0
     imageUris.forEachIndexed { index, uri ->
         if (uri == null) return@forEachIndexed
 
-        val fileName = "images/${userId}_${System.currentTimeMillis()}_${index}.jpg"
-        val storageRef = storage.reference.child(fileName)
+        val ref = storage.reference.child("images/${userId}_${System.currentTimeMillis()}_$index.jpg")
+        ref.putFile(uri).addOnSuccessListener {
+            ref.downloadUrl.addOnSuccessListener { downloadUrl ->
+                uploadedUrls.add(downloadUrl.toString())
+                completed++
+                if (completed == imageUris.size) {
+                    val post = hashMapOf(
+                        "name" to username,
+                        "caption" to caption,
+                        "postImages" to uploadedUrls,
+                        "timePosted" to Timestamp.now(),
+                        "likes" to 0,
+                        "comments" to emptyList<String>(),
+                        "tags" to emptyList<String>(),
+                        "latitude" to latitude,
+                        "longitude" to longitude
+                    )
 
-        storageRef.putFile(uri)
-            .addOnSuccessListener {
-                storageRef.downloadUrl.addOnSuccessListener { downloadUrl ->
-                    imageUrls.add(downloadUrl.toString())
-                    uploadedCount++
-                    if (uploadedCount == imageUris.size) {
-                        onComplete(imageUrls)
-                    }
+                    db.collection("users").document(userId).collection("posts")
+                        .add(post)
+                        .addOnSuccessListener {
+                            Toast.makeText(context, "Post Added", Toast.LENGTH_SHORT).show()
+                            navController?.navigate(Screen.Home.route) {
+                                popUpTo(Screen.Home.route) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                            onComplete(true)
+                        }
+                        .addOnFailureListener {
+                            Toast.makeText(context, "Post Failed", Toast.LENGTH_SHORT).show()
+                        }
                 }
             }
-            .addOnFailureListener {
-                Toast.makeText(context, "Upload Failed", Toast.LENGTH_SHORT).show()
-            }
+        }.addOnFailureListener {
+            Toast.makeText(context, "Image Upload Failed", Toast.LENGTH_SHORT).show()
+        }
     }
 }
-
-fun addContent(
-    content: String,
-    imageUrls: List<String>,
-    context: Context,
-    navController: NavController
-) {
-    val auth = Firebase.auth
-    val db = Firebase.firestore
-    val userId = auth.currentUser?.uid
-    val username = auth.currentUser?.displayName
-
-    if (userId != null) {
-        val post = hashMapOf(
-            "name" to username,
-            "caption" to content,
-            "postImages" to imageUrls,
-            "timePosted" to com.google.firebase.Timestamp.now(),
-            "likes" to 0,
-            "comments" to emptyList<String>(),
-            "location" to "Somewhere", /*Todo: Add location data GPS?*/
-            "tags" to emptyList<String>()
-        )
-
-        db.collection("users").document(userId).collection("posts")
-            .add(post)
-            .addOnSuccessListener { documentReference ->
-                Toast.makeText(context, "Post Added", Toast.LENGTH_SHORT).show()
-
-                navController.navigate(Screen.Home.route) {
-                    popUpTo(Screen.Home.route) { inclusive = true }
-                    launchSingleTop = true
-                }
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(context, "Post Failed", Toast.LENGTH_SHORT).show()
-            }
-    } else {
-        Log.w(TAG, "User not authenticated.")
-    }
-}
-
-
