@@ -72,6 +72,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.play.services.maps)
+    implementation(libs.play.services.location)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -90,7 +91,8 @@ dependencies {
 
     // Google Maps Android SDK
     implementation("com.google.maps.android:maps-compose:2.12.0")
-    implementation("com.google.android.gms:play-services-maps:18.2.0") // Replace with the latest version
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation("com.google.android.gms:play-services-location:21.0.1")
 
     // Coroutines for asynchronous operations (optional, but recommended)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")

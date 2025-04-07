@@ -14,11 +14,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -46,7 +44,6 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import kotlinx.coroutines.tasks.await
 
 @Composable
 fun ProfilePage(
@@ -95,7 +92,8 @@ fun ProfilePage(
 
                         val unsortedPosts = snapshot.documents.mapNotNull { document ->
                             val postId = document.id
-                            val postImages = document.get("postImages") as? List<String> ?: emptyList()
+                            val postImages =
+                                document.get("postImages") as? List<String> ?: emptyList()
                             val postCaption = document.getString("caption") ?: "No caption"
                             val timeStamp = document.getTimestamp("timePosted")
                             val userName = document.getString("name") ?: "No Name"

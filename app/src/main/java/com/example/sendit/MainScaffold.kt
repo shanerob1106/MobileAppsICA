@@ -57,7 +57,6 @@ fun MainScaffold(
         SendItNavHost(
             navController = navController,
             startDestination = startDestination,
-            isUserLoggedIn = isUserLoggedIn,
             modifier = Modifier.padding(innerPadding)
         )
     }

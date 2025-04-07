@@ -26,9 +26,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,12 +49,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.sendit.data.PostData
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
-import com.google.maps.android.compose.rememberCameraPositionState
 
 // ExpandableText composable
 @Composable
@@ -89,6 +83,11 @@ fun PostCard(post: PostData) {
     // Snap image to middle of screen
     val lazyListState = rememberLazyListState()
     val snapBehaviour = rememberSnapFlingBehavior(lazyListState = lazyListState)
+
+    // Track loading state for images
+    val imageLoadingStates = remember {
+        post.postImages.map { mutableStateOf(true) }
+    }
 
     // Card Element
     Card(
@@ -162,6 +161,7 @@ fun PostCard(post: PostData) {
             ) {
                 items(post.postImages.size) { index ->
                     val imageUrl = post.postImages[index]
+                    val isLoading = imageLoadingStates[index]
                     Box(
                         modifier = Modifier
                             .fillParentMaxWidth(),
@@ -173,8 +173,26 @@ fun PostCard(post: PostData) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .aspectRatio(1f),
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Crop,
+                            onLoading = { isLoading.value = true },
+                            onSuccess = { isLoading.value = false },
+                            onError = { isLoading.value = false }
                         )
+
+                        // Show loading indicator when image is loading
+                        if (isLoading.value) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }

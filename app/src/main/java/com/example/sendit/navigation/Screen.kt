@@ -11,21 +11,23 @@ import com.example.sendit.pages.account.ProfilePage
 import com.example.sendit.pages.interaction.AIPage
 import com.example.sendit.pages.interaction.AddPage
 import com.example.sendit.pages.interaction.ChatPage
+import com.example.sendit.pages.interaction.CurrentUserLocation
 import com.example.sendit.pages.interaction.LikePage
 import com.example.sendit.pages.interaction.MapScreen
 import com.example.sendit.pages.interaction.SearchPage
 import com.example.sendit.pages.interaction.returnSelectedLocation
 
 sealed class Screen(val route: String) {
-    object Login : Screen("login")
-    object Home : Screen("home")
-    object Search : Screen("search")
-    object Add : Screen("add")
-    object AI : Screen("ai")
-    object Profile : Screen("profile")
-    object Likes : Screen("likes")
-    object Chat : Screen("chat")
-    object Map : Screen("map")
+    data object Login : Screen("login")
+    data object Home : Screen("home")
+    data object Search : Screen("search")
+    data object Add : Screen("add")
+    data object AI : Screen("ai")
+    data object Profile : Screen("profile")
+    data object Likes : Screen("likes")
+    data object Chat : Screen("chat")
+    data object Map : Screen("map")
+    data object UserMap : Screen("usermap")
 }
 
 
@@ -33,7 +35,6 @@ sealed class Screen(val route: String) {
 fun SendItNavHost(
     navController: NavHostController,
     startDestination: String,
-    isUserLoggedIn: Boolean,
     modifier: Modifier = Modifier
 ) {
     NavHost(
@@ -78,8 +79,13 @@ fun SendItNavHost(
         composable(Screen.Chat.route) {
             ChatPage()
         }
+
+        composable(Screen.UserMap.route) {
+            CurrentUserLocation()
+        }
+
         composable(Screen.Map.route) {
-            MapScreen {lat, lng ->
+            MapScreen { lat, lng ->
                 returnSelectedLocation(navController, lat, lng)
             }
         }

@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -79,6 +80,22 @@ fun TopAppBar(navController: NavController) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.Send,
                     contentDescription = "Chat",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            IconButton(onClick = {
+                navController.navigate(Screen.UserMap.route) {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            }) {
+                Icon(
+                    imageVector = Icons.Outlined.Place,
+                    contentDescription = "Map",
                     modifier = Modifier.size(24.dp)
                 )
             }
