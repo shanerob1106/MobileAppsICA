@@ -16,7 +16,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -38,8 +42,11 @@ import com.example.sendit.helpers.ExpandableText
 import com.example.sendit.helpers.PostCard
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun ProfilePage(
@@ -47,7 +54,6 @@ fun ProfilePage(
     navController: NavController,
     profileUserId: String? = null
 ) {
-
     // Firestore
     val db = Firebase.firestore
     val auth = Firebase.auth
@@ -63,69 +69,95 @@ fun ProfilePage(
     var postCount by remember { mutableIntStateOf(0) }
     var followersCount by remember { mutableIntStateOf(0) }
     var followingCount by remember { mutableIntStateOf(0) }
+    var isLoading by remember { mutableStateOf(true) }
 
     // List of Posts as PostData Object
     var posts by remember { mutableStateOf(emptyList<PostData>()) }
 
-    // Ensures the Firestore call runs only when the composable launches
+    // Listeners for real-time updates
+    val userListener = remember { mutableStateOf<ListenerRegistration?>(null) }
+    val postsListener = remember { mutableStateOf<ListenerRegistration?>(null) }
+
+    // Function to load posts
+    fun loadPosts() {
+        postsListener.value?.remove()
+
+        userId?.let { uid ->
+            val listener = db.collection("users").document(uid).collection("posts")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.e("ProfilePage", "Error listening for post updates", error)
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshot != null) {
+                        postCount = snapshot.size()
+
+                        val unsortedPosts = snapshot.documents.mapNotNull { document ->
+                            val postId = document.id
+                            val postImages = document.get("postImages") as? List<String> ?: emptyList()
+                            val postCaption = document.getString("caption") ?: "No caption"
+                            val timeStamp = document.getTimestamp("timePosted")
+                            val userName = document.getString("name") ?: "No Name"
+
+                            PostData(
+                                postId = postId,
+                                userName = userName,
+                                userImage = userImage,
+                                postImages = postImages,
+                                postCaption = postCaption,
+                                timeStamp = timeStamp
+                            )
+                        }
+
+                        posts = unsortedPosts.sortedByDescending { it.timeStamp }
+                        isLoading = false
+                    }
+                }
+
+            postsListener.value = listener
+        }
+    }
+
+    // Set up real-time listeners for user data and posts
     LaunchedEffect(userId) {
         if (userId != null) {
-            db.collection("users").document(userId).get()
-                .addOnSuccessListener { document ->
-                    userName = document.getString("username") ?: "No Name Found"
-                    userImage = document.getString("image") ?: "No Image Found"
-                    userBio = document.getString("bio") ?: "No Bio Found"
-                    fName = document.getString("firstName") ?: "No First Name Found"
-                    lName = document.getString("lastName") ?: "No Last Name Found"
-
-                    // Get length of following and followers array
-                    val following = document.get("following") as? List<*>
-                    val followers = document.get("followers") as? List<*>
-
-                    // Get the following count
-                    if (following != null) {
-                        followingCount = following.size
+            // Listen for user profile changes
+            val listener = db.collection("users").document(userId)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.e("ProfilePage", "Error listening for user updates", error)
+                        return@addSnapshotListener
                     }
 
-                    // Get the followers count
-                    if (followers != null) {
-                        followersCount = followers.size
+                    if (snapshot != null && snapshot.exists()) {
+                        userName = snapshot.getString("username") ?: "No Name Found"
+                        userImage = snapshot.getString("image") ?: ""
+                        userBio = snapshot.getString("bio") ?: "No Bio Found"
+                        fName = snapshot.getString("firstName") ?: "No First Name Found"
+                        lName = snapshot.getString("lastName") ?: "No Last Name Found"
+
+                        // Get length of following and followers array
+                        val following = snapshot.get("following") as? List<*>
+                        val followers = snapshot.get("followers") as? List<*>
+
+                        followingCount = following?.size ?: 0
+                        followersCount = followers?.size ?: 0
+
+                        // Load posts after user data is loaded to ensure we have the user image
+                        loadPosts()
                     }
-
-                    // Get the content of the posts
-                    db.collection("users").document(userId).collection("posts")
-                        .get()
-                        .addOnSuccessListener { querySnapshot ->
-                            postCount = querySnapshot.size()
-
-                            val unsortedPosts = querySnapshot.documents.mapNotNull { document ->
-                                val postId = document.id  // Document ID as Post ID
-                                val postImages = document.get("postImages") as? List<String>
-                                    ?: emptyList<String>()
-                                val postCaption = document.getString("caption") ?: "No caption"
-                                val timeStamp = document.getTimestamp("timePosted")
-                                val userName = document.getString("name") ?: "No Name"
-
-                                PostData(
-                                    postId = postId,
-                                    userName = userName,
-                                    userImage = "",     // No user profile
-                                    postImages = postImages,     // No post image(s)
-                                    postCaption = postCaption,
-                                    timeStamp = timeStamp
-                                )
-                            }
-
-                            posts = unsortedPosts.sortedByDescending { it.timeStamp }
-                        }
-                        .addOnFailureListener { exception ->
-                            Log.d("ProfilePage", "Error getting posts: ", exception)
-                        }
-
                 }
-                .addOnFailureListener { exception ->
-                    Log.d("ProfilePage", "get failed with ", exception)
-                }
+
+            userListener.value = listener
+        }
+    }
+
+    // Clean up listeners when leaving the screen
+    DisposableEffect(key1 = userId) {
+        onDispose {
+            userListener.value?.remove()
+            postsListener.value?.remove()
         }
     }
 
@@ -152,7 +184,7 @@ fun ProfilePage(
                         .fillMaxWidth()
                         .padding(top = 15.dp)
                 ) {
-                    if (userImage.isNotEmpty()) {
+                    if (userImage.isEmpty()) {
                         // Placeholder with first character of username
                         Box(
                             modifier = Modifier
@@ -271,7 +303,7 @@ fun ProfilePage(
                 )
                 ExpandableText(userBio)
 
-                // Follow Button
+                // Follow Button or Sign Out Button based on whether this is the current user's profile
                 if (profileUserId == currentUserId) {
                     Button(
                         onClick = {
@@ -288,21 +320,105 @@ fun ProfilePage(
                     ) {
                         Text(text = "Sign Out")
                     }
-                } else {
-                    Button(
-                        onClick = {/*Todo: Follow Button Logic*/ },
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth()
-                    ) {
-                        Text(text = "Follow")
-                    }
+                } else if (profileUserId != null && currentUserId != null) {
+                    FollowButton(profileUserId = profileUserId, currentUserId = currentUserId)
                 }
             }
         }
 
-        for (post in posts) {
-            PostCard(post = post)
+        // Loading indicator or posts
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.padding(16.dp)
+            )
+        } else if (posts.isEmpty()) {
+            Text(
+                text = "No posts yet",
+                modifier = Modifier.padding(16.dp),
+                style = TextStyle(color = MaterialTheme.colorScheme.onBackground)
+            )
+        } else {
+            for (post in posts) {
+                PostCard(post = post)
+            }
         }
+    }
+}
+
+@Composable
+fun FollowButton(profileUserId: String, currentUserId: String) {
+    val db = Firebase.firestore
+    var isFollowing by remember { mutableStateOf(false) }
+    var isProcessing by remember { mutableStateOf(false) }
+
+    // Set up real-time listener for following status
+    LaunchedEffect(profileUserId, currentUserId) {
+        if (profileUserId != currentUserId) {
+            val listener = db.collection("users").document(profileUserId)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.e("FollowButton", "Error listening for follow updates", error)
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshot != null) {
+                        val followers = snapshot.get("followers") as? List<*>
+                        isFollowing = followers?.contains(currentUserId) == true
+                        isProcessing = false  // Reset processing state when we get updated data
+                    }
+                }
+        }
+    }
+
+    Button(
+        onClick = {
+            if (!isProcessing) {  // Prevent multiple clicks while processing
+                isProcessing = true
+                if (isFollowing) {
+                    Unfollow(profileUserId, currentUserId)
+                } else {
+                    Follow(profileUserId, currentUserId)
+                }
+            }
+        },
+        enabled = !isProcessing,
+        modifier = Modifier
+            .padding(16.dp)
+            .fillMaxWidth()
+    ) {
+        if (isProcessing) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+        } else {
+            Text(text = if (isFollowing) "Unfollow" else "Follow")
+        }
+    }
+}
+
+// Follow function
+fun Follow(profileUserId: String, currentUserId: String) {
+    val db = Firebase.firestore
+    if (profileUserId != currentUserId) {
+        db.collection("users").document(profileUserId).update(
+            "followers", FieldValue.arrayUnion(currentUserId)
+        )
+        db.collection("users").document(currentUserId).update(
+            "following", FieldValue.arrayUnion(profileUserId)
+        )
+    }
+}
+
+// Unfollow function
+fun Unfollow(profileUserId: String, currentUserId: String) {
+    val db = Firebase.firestore
+    if (profileUserId != currentUserId) {
+        db.collection("users").document(profileUserId).update(
+            "followers", FieldValue.arrayRemove(currentUserId)
+        )
+        db.collection("users").document(currentUserId).update(
+            "following", FieldValue.arrayRemove(profileUserId)
+        )
     }
 }
