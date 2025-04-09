@@ -104,7 +104,8 @@ fun ProfilePage(
                                 userImage = userImage,
                                 postImages = postImages,
                                 postCaption = postCaption,
-                                timeStamp = timeStamp
+                                timeStamp = timeStamp,
+                                userId = userId
                             )
                         }
 
@@ -337,7 +338,7 @@ fun ProfilePage(
             )
         } else {
             for (post in posts) {
-                PostCard(post = post)
+                PostCard(post = post, navController = navController)
             }
         }
     }

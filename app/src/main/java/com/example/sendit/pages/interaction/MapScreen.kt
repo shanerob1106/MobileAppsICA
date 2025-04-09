@@ -23,7 +23,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.google.android.gms.location.LocationServices
@@ -122,24 +121,6 @@ fun CurrentUserLocation() {
                         )
                     }
                 }
-
-                // Display coordinates at the bottom
-//                userLocation?.let { position ->
-//                    Text(
-//                        text = "Your Location: ${
-//                            String.format(
-//                                "%.6f",
-//                                position.latitude
-//                            )
-//                        }, ${String.format("%.6f", position.longitude)}",
-//                        color = MaterialTheme.colorScheme.onSurface,
-//                        fontSize = 12.sp,
-//                        modifier = Modifier
-//                            .align(Alignment.BottomCenter)
-//                            .padding(bottom = 16.dp)
-//                            .padding(horizontal = 16.dp)
-//                    )
-//                }
             }
         }
     }
@@ -277,8 +258,22 @@ fun MapScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
+            }
+        }
+    }
+}
 
-                // Display coordinates at the bottom
+fun returnSelectedLocation(navController: NavController, latitude: Double, longitude: Double) {
+    navController.previousBackStackEntry?.savedStateHandle?.set(
+        "location",
+        Pair(latitude, longitude)
+    )
+    navController.popBackStack()
+}
+
+// SAMPLE CODE - CODE THAT WAS PREVIOUSLY IN THE MAP SCREEN
+
+// Display coordinates at the bottom
 //                userLocation?.let { position ->
 //                    Text(
 //                        text = "Your Location: ${
@@ -295,15 +290,3 @@ fun MapScreen(
 //                            .padding(horizontal = 16.dp)
 //                    )
 //                }
-            }
-        }
-    }
-}
-
-fun returnSelectedLocation(navController: NavController, latitude: Double, longitude: Double) {
-    navController.previousBackStackEntry?.savedStateHandle?.set(
-        "location",
-        Pair(latitude, longitude)
-    )
-    navController.popBackStack()
-}

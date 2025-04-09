@@ -218,11 +218,11 @@ fun uploadAndPost(
                 if (completed == imageUris.size) {
                     val post = hashMapOf(
                         "name" to username,
+                        "userId" to userId,
                         "caption" to caption,
                         "postImages" to uploadedUrls,
                         "timePosted" to Timestamp.now(),
                         "likes" to 0,
-                        "comments" to emptyList<String>(),
                         "tags" to emptyList<String>(),
                         "latitude" to latitude,
                         "longitude" to longitude

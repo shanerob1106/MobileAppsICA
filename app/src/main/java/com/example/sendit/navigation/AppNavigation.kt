@@ -141,7 +141,7 @@ fun BottomNavigationBar(navController: NavController) {
                             saveState = true
                         }
                         launchSingleTop = true
-                        restoreState = true
+                        restoreState = false
                     }
                 },
                 icon = { Icon(imageVector = item.icon, contentDescription = item.label) },

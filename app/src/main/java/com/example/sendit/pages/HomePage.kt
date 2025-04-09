@@ -16,16 +16,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavController
 import com.example.sendit.data.PostData
 import com.example.sendit.helpers.PostCard
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
-@Preview
 @Composable
-fun HomePage(modifier: Modifier = Modifier) {
+fun HomePage(
+    modifier: Modifier = Modifier,
+    navController: NavController
+) {
 
     // Firestore
     val db = Firebase.firestore
@@ -64,7 +66,8 @@ fun HomePage(modifier: Modifier = Modifier) {
                                     userImage = "",     // No user profile image
                                     postImages = postImages,     // No post image(s)
                                     postCaption = postCaption,
-                                    timeStamp = timeStamp
+                                    timeStamp = timeStamp,
+                                    userId = userId
                                 )
                             }
 
@@ -85,7 +88,6 @@ fun HomePage(modifier: Modifier = Modifier) {
             }
     }
 
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -95,7 +97,7 @@ fun HomePage(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         for (post in posts) {
-            PostCard(post = post)
+            PostCard(post = post, navController = navController)
         }
     }
 }

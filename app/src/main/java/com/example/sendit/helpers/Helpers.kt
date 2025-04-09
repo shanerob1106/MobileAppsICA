@@ -47,8 +47,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import coil3.compose.AsyncImage
 import com.example.sendit.data.PostData
+import com.example.sendit.navigation.Screen
 
 // ExpandableText composable
 @Composable
@@ -78,7 +81,7 @@ fun ExpandableText(text: String, modifier: Modifier = Modifier, fontSize: TextUn
 
 // Simple Card to display a post
 @Composable
-fun PostCard(post: PostData) {
+fun PostCard(post: PostData, navController: NavController) {
 
     // Snap image to middle of screen
     val lazyListState = rememberLazyListState()
@@ -224,17 +227,25 @@ fun PostCard(post: PostData) {
                 )
 
                 // Comments Button
-                IconButton(onClick = {/*Todo*/ }) {
+                IconButton(onClick = {
+                    navController.navigate(Screen.Comments.route + "/${post.userId}/${post.postId}") {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = false
+                    }
+                }) {
                     Icon(
                         imageVector = Icons.Outlined.Edit,
-                        contentDescription = "Like Button",
+                        contentDescription = "Comment Button",
                         modifier = Modifier.size(24.dp)
                     )
                 }
 
                 // Comments Counter
                 Text(
-                    text = post.comments.toString(),
+                    text = "0",
                     modifier = Modifier.align(alignment = Alignment.CenterVertically)
                 )
 
@@ -242,7 +253,7 @@ fun PostCard(post: PostData) {
                 IconButton(onClick = {/*Todo*/ }) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Outlined.Send,
-                        contentDescription = "Like Button",
+                        contentDescription = "Send Button",
                         modifier = Modifier.size(24.dp)
                     )
                 }

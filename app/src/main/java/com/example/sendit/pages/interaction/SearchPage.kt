@@ -91,7 +91,9 @@ fun SearchPage(
                             navController.navigate("profile/${result.userId}") {
                                 popUpTo(navController.graph.startDestinationId)
                                 launchSingleTop = true
+                                restoreState = false
                             }
+
                         }
                         .fillMaxWidth()
                         .padding(8.dp),
