@@ -18,8 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
 import com.example.sendit.data.PostData
-import com.example.sendit.helpers.PostCard
-import com.google.firebase.auth.ktx.auth
+import com.example.sendit.helpers.PostItem
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
@@ -31,8 +30,6 @@ fun HomePage(
 
     // Firestore
     val db = Firebase.firestore
-    val auth = Firebase.auth
-    val userId = auth.currentUser?.uid
 
     var posts by remember { mutableStateOf(emptyList<PostData>()) }
 
@@ -97,7 +94,12 @@ fun HomePage(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         for (post in posts) {
-            PostCard(post = post, navController = navController)
+            PostItem(
+                post = post,
+                navController = navController,
+                isCurrentUserPost = false,
+                onDeleteClick = { /*Leave Empty*/ }
+            )
         }
     }
 }

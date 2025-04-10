@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Card
@@ -81,7 +82,12 @@ fun ExpandableText(text: String, modifier: Modifier = Modifier, fontSize: TextUn
 
 // Simple Card to display a post
 @Composable
-fun PostCard(post: PostData, navController: NavController) {
+fun PostItem(
+    post: PostData,
+    navController: NavController,
+    isCurrentUserPost: Boolean,
+    onDeleteClick: () -> Unit
+) {
 
     // Snap image to middle of screen
     val lazyListState = rememberLazyListState()
@@ -150,6 +156,18 @@ fun PostCard(post: PostData, navController: NavController) {
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
                     )
+                }
+                if(isCurrentUserPost) {
+                    IconButton (
+                        onClick = onDeleteClick,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon (
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete Post",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))

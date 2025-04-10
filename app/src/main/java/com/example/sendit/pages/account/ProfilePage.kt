@@ -12,11 +12,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -37,13 +39,15 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import coil3.compose.AsyncImage
 import com.example.sendit.data.PostData
 import com.example.sendit.helpers.ExpandableText
-import com.example.sendit.helpers.PostCard
+import com.example.sendit.helpers.PostItem
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.storage.FirebaseStorage
 
 @Composable
 fun ProfilePage(
@@ -74,6 +78,10 @@ fun ProfilePage(
     // Listeners for real-time updates
     val userListener = remember { mutableStateOf<ListenerRegistration?>(null) }
     val postsListener = remember { mutableStateOf<ListenerRegistration?>(null) }
+
+    // State for delete confirm
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var postToDelete by remember { mutableStateOf<PostData?>(null) }
 
     // Function to load posts
     fun loadPosts() {
@@ -158,6 +166,39 @@ fun ProfilePage(
             userListener.value?.remove()
             postsListener.value?.remove()
         }
+    }
+
+    // Delete confirmation dialog
+    if (showDeleteDialog && postToDelete != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteDialog = false
+                postToDelete = null
+            },
+            title = { Text("Delete Comment") },
+            text = { Text("Are you sure you want to delete this comment?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        postToDelete?.let { deletePost(it, db, userId!!, it.postId) }
+                        showDeleteDialog = false
+                        postToDelete = null
+                    }
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        postToDelete = null
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     // Profile Page UI
@@ -338,7 +379,15 @@ fun ProfilePage(
             )
         } else {
             for (post in posts) {
-                PostCard(post = post, navController = navController)
+                PostItem(
+                    post = post,
+                    navController = navController,
+                    isCurrentUserPost = currentUserId == post.userId,
+                    onDeleteClick = {
+                        postToDelete = post
+                        showDeleteDialog = true
+                    }
+                )
             }
         }
     }
@@ -421,3 +470,45 @@ fun Unfollow(profileUserId: String, currentUserId: String) {
         )
     }
 }
+
+// Delete Post
+fun deletePost (
+    post: PostData,
+    db: FirebaseFirestore = Firebase.firestore,
+    userId: String,
+    postId: String
+) {
+
+    for (image in post.postImages) {
+        val photos = FirebaseStorage.getInstance()
+        val storageRef = photos.getReferenceFromUrl(image)
+        storageRef.delete()
+    }
+
+    db.collection("users")
+        .document(userId)
+        .collection("posts")
+        .document(postId)
+        .delete()
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

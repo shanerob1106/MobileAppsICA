@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -59,7 +60,7 @@ fun CommentPage(
     var comments by remember { mutableStateOf(emptyList<CommentData>()) }
     val commentsListener = remember { mutableStateOf<ListenerRegistration?>(null) }
     var isLoading by remember { mutableStateOf(true) }
-    var commentCount by remember { mutableStateOf(0) }
+    var commentCount by remember { mutableIntStateOf(0) }
     var commentText by remember { mutableStateOf("") }
 
     // State for delete confirm
