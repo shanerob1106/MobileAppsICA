@@ -6,7 +6,6 @@ import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Place
@@ -22,7 +21,7 @@ import androidx.compose.material3.TopAppBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,12 +29,13 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.sendit.R
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
 data class BottomNavItem(
     val label: String,
-    val icon: ImageVector,
+    val icon: (@Composable () -> Unit),
     val route: String
 )
 
@@ -119,12 +119,26 @@ fun BottomNavigationBar(navController: NavController) {
 
     // Bottom Navigation Items
     val items = listOf(
-        BottomNavItem("Home", Icons.Default.Home, Screen.Home.route),
-        BottomNavItem("Search", Icons.Default.Search, Screen.Search.route),
-        BottomNavItem("Add", Icons.Default.Add, Screen.Add.route),
-        BottomNavItem("AI", Icons.Default.Person, Screen.AI.route),
-        BottomNavItem("Profile", Icons.Default.AccountBox, Screen.Profile.route + "/${userId}")
+        BottomNavItem("Home", {
+            Icon(imageVector = Icons.Default.Home, contentDescription = "Home")
+        }, Screen.Home.route),
+        BottomNavItem("Search", {
+            Icon(imageVector = Icons.Default.Search, contentDescription = "Search")
+        }, Screen.Search.route),
+        BottomNavItem("Add", {
+            Icon(imageVector = Icons.Default.Add, contentDescription = "Add")
+        }, Screen.Add.route),
+        BottomNavItem("Activities", {
+            Icon(
+                painter = painterResource(id = R.drawable.leaderboard_icon),
+                contentDescription = "Activities"
+            )
+        }, Screen.Activities.route),
+        BottomNavItem("Profile", {
+            Icon(imageVector = Icons.Default.AccountBox, contentDescription = "Profile")
+        }, Screen.Profile.route + "/${userId}")
     )
+
 
     // Get the current route
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -144,7 +158,7 @@ fun BottomNavigationBar(navController: NavController) {
                         restoreState = false
                     }
                 },
-                icon = { Icon(imageVector = item.icon, contentDescription = item.label) },
+                icon = item.icon,
                 label = { Text(text = item.label) }
             )
         }

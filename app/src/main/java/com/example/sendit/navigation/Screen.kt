@@ -13,6 +13,7 @@ import com.example.sendit.pages.interaction.AddPage
 import com.example.sendit.pages.interaction.ChatPage
 import com.example.sendit.pages.interaction.CommentPage
 import com.example.sendit.pages.interaction.CurrentUserLocation
+import com.example.sendit.pages.interaction.ActivitiesPage
 import com.example.sendit.pages.interaction.LikePage
 import com.example.sendit.pages.interaction.MapScreen
 import com.example.sendit.pages.interaction.SearchPage
@@ -30,6 +31,7 @@ sealed class Screen(val route: String) {
     data object Map : Screen("map")
     data object UserMap : Screen("usermap")
     data object Comments : Screen("comments")
+    data object Activities : Screen("activities")
 }
 
 
@@ -90,6 +92,10 @@ fun SendItNavHost(
             MapScreen { lat, lng ->
                 returnSelectedLocation(navController, lat, lng)
             }
+        }
+
+        composable(Screen.Activities.route) {
+            ActivitiesPage()
         }
 
         composable(Screen.Comments.route + "/{userId}/{postId}") { backStackEntry ->
