@@ -175,8 +175,8 @@ fun ProfilePage(
                 showDeleteDialog = false
                 postToDelete = null
             },
-            title = { Text("Delete Comment") },
-            text = { Text("Are you sure you want to delete this comment?") },
+            title = { Text("Delete Post") },
+            text = { Text("Are you sure you want to delete this post?") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -402,7 +402,7 @@ fun FollowButton(profileUserId: String, currentUserId: String) {
     // Set up real-time listener for following status
     LaunchedEffect(profileUserId, currentUserId) {
         if (profileUserId != currentUserId) {
-            val listener = db.collection("users").document(profileUserId)
+            db.collection("users").document(profileUserId)
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
                         Log.e("FollowButton", "Error listening for follow updates", error)

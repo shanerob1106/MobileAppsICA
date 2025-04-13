@@ -1,5 +1,6 @@
 package com.example.sendit.helpers
 
+import android.util.Log
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -23,8 +24,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Card
@@ -35,7 +36,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -53,6 +57,11 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import coil3.compose.AsyncImage
 import com.example.sendit.data.PostData
 import com.example.sendit.navigation.Screen
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
+import org.w3c.dom.Comment
 
 // ExpandableText composable
 @Composable
@@ -157,12 +166,12 @@ fun PostItem(
                         fontSize = 16.sp
                     )
                 }
-                if(isCurrentUserPost) {
-                    IconButton (
+                if (isCurrentUserPost) {
+                    IconButton(
                         onClick = onDeleteClick,
                         modifier = Modifier.size(24.dp)
                     ) {
-                        Icon (
+                        Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete Post",
                             tint = MaterialTheme.colorScheme.error
@@ -228,53 +237,11 @@ fun PostItem(
 
             // User interactions row
             Row {
-
                 // Like button
-                IconButton(onClick = {/*Todo*/ }) {
-                    Icon(
-                        imageVector = Icons.Outlined.FavoriteBorder,
-                        contentDescription = "Like Button",
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
 
-                // Like Counter
-                Text(
-                    text = post.likes.toString(),
-                    modifier = Modifier.align(alignment = Alignment.CenterVertically)
-                )
+                LikeButton(post)
 
-                // Comments Button
-                IconButton(onClick = {
-                    navController.navigate(Screen.Comments.route + "/${post.userId}/${post.postId}") {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = false
-                    }
-                }) {
-                    Icon(
-                        imageVector = Icons.Outlined.Edit,
-                        contentDescription = "Comment Button",
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-
-                // Comments Counter
-                Text(
-                    text = "0",
-                    modifier = Modifier.align(alignment = Alignment.CenterVertically)
-                )
-
-                // Send Post button
-                IconButton(onClick = {/*Todo*/ }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.Send,
-                        contentDescription = "Send Button",
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+                CommentButton(post, navController)
             }
 
             // Date post was made
@@ -286,3 +253,165 @@ fun PostItem(
         }
     }
 }
+
+fun addLike(
+    postData: PostData
+) {
+    // Current User ID
+    val currentUserId = Firebase.auth.currentUser?.uid
+
+    // Map of like data
+    val likeData = hashMapOf(
+        "userId" to currentUserId,
+        "timestamp" to com.google.firebase.Timestamp.now()
+    )
+
+    // Firestore Collection
+    Firebase.firestore.collection("users")
+        .document(postData.userId)
+        .collection("posts")
+        .document(postData.postId)
+        .collection("likes")
+        .document(currentUserId.toString())
+        .set(likeData)
+}
+
+fun removeLike(
+    postData: PostData
+) {
+    // Current User ID
+    val currentUserId = Firebase.auth.currentUser?.uid
+
+    // Firestore Collection
+    Firebase.firestore.collection("users")
+        .document(postData.userId)
+        .collection("posts")
+        .document(postData.postId)
+        .collection("likes")
+        .document(currentUserId.toString())
+        .delete()
+}
+
+@Composable
+fun LikeButton(post: PostData) {
+    val db = Firebase.firestore
+    var isLiked by remember { mutableStateOf(false) }
+    var isProcessing by remember { mutableStateOf(false) }
+    var likeCount by remember { mutableIntStateOf(0) }
+
+    // Setup Like Button Listener
+    LaunchedEffect (isLiked) {
+        db.collection("users")
+            .document(post.userId)
+            .collection("posts")
+            .document(post.postId)
+            .collection("likes")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("LikeButton", "Error listening for likes", error)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    Log.d("LikeButton", "Likes: ${snapshot.size()}")
+                    isLiked = snapshot.any { it.id == post.userId }
+                    isProcessing = false
+
+                    likeCount = snapshot.size()
+                }
+            }
+    }
+
+    Row{
+        // Like Button
+        IconButton(
+            onClick = {
+                if (!isProcessing) {
+                    isProcessing = true
+                    if (isLiked) {
+                        removeLike(post)
+                    } else {
+                        addLike(post)
+                    }
+                }
+            },
+            enabled = !isProcessing
+        ) {
+            if (isProcessing) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            } else {
+                if (isLiked) {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = "Post has been liked",
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Outlined.FavoriteBorder,
+                        contentDescription = "Post has not been liked",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+        }
+
+        Text(
+            text = likeCount.toString(),
+            modifier = Modifier.align(alignment = Alignment.CenterVertically)
+        )
+    }
+}
+
+@Composable
+fun CommentButton(post: PostData, navController: NavController) {
+
+    var commentsCount by remember { mutableIntStateOf(0) }
+    LaunchedEffect(post) {
+        Firebase.firestore.collection("users")
+            .document(post.userId)
+            .collection("posts")
+            .document(post.postId)
+            .collection("comments")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("CommentButton", "Error listening for comments", error)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    Log.d("CommentButton", "Comments: ${snapshot.size()}")
+                    commentsCount = snapshot.size()
+                }
+            }
+    }
+
+    Row{
+        // Comments Button
+        IconButton(onClick = {
+            navController.navigate(Screen.Comments.route + "/${post.userId}/${post.postId}") {
+                popUpTo(navController.graph.findStartDestination().id) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = false
+            }
+        }) {
+            Icon(
+                imageVector = Icons.Outlined.Edit,
+                contentDescription = "Comment Button",
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        Text(
+            text = commentsCount.toString(),
+            modifier = Modifier.align(alignment = Alignment.CenterVertically)
+        )
+    }
+}
+
+

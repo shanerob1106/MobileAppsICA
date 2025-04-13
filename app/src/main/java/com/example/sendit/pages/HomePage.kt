@@ -60,8 +60,8 @@ fun HomePage(
                                 PostData(
                                     postId = postId,
                                     userName = userName,
-                                    userImage = "",     // No user profile image
-                                    postImages = postImages,     // No post image(s)
+                                    userImage = "",
+                                    postImages = postImages,
                                     postCaption = postCaption,
                                     timeStamp = timeStamp,
                                     userId = userId

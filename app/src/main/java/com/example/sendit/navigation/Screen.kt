@@ -14,7 +14,6 @@ import com.example.sendit.pages.interaction.ChatPage
 import com.example.sendit.pages.interaction.CommentPage
 import com.example.sendit.pages.interaction.CurrentUserLocation
 import com.example.sendit.pages.interaction.ActivitiesPage
-import com.example.sendit.pages.interaction.LikePage
 import com.example.sendit.pages.interaction.MapScreen
 import com.example.sendit.pages.interaction.SearchPage
 import com.example.sendit.pages.interaction.returnSelectedLocation
@@ -26,7 +25,6 @@ sealed class Screen(val route: String) {
     data object Add : Screen("add")
     data object AI : Screen("ai")
     data object Profile : Screen("profile")
-    data object Likes : Screen("likes")
     data object Chat : Screen("chat")
     data object Map : Screen("map")
     data object UserMap : Screen("usermap")
@@ -74,10 +72,6 @@ fun SendItNavHost(
         composable(Screen.Profile.route + "/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId")
             ProfilePage(navController = navController, profileUserId = userId)
-        }
-
-        composable(Screen.Likes.route) {
-            LikePage()
         }
 
         composable(Screen.Chat.route) {

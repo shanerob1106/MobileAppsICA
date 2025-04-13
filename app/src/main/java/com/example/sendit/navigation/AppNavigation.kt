@@ -53,7 +53,7 @@ fun TopAppBar(navController: NavController) {
         },
         actions = {
             IconButton(onClick = {
-                navController.navigate(Screen.Likes.route) {
+                navController.navigate(Screen.AI.route) {
                     popUpTo(navController.graph.findStartDestination().id) {
                         saveState = true
                     }
@@ -62,27 +62,27 @@ fun TopAppBar(navController: NavController) {
                 }
             }) {
                 Icon(
-                    imageVector = Icons.Outlined.FavoriteBorder,
-                    contentDescription = "Likes",
-                    modifier = Modifier.size(24.dp)
+                    painter = painterResource(id = R.drawable.ai_robot),
+                    contentDescription = "AI Chat Page",
                 )
             }
 
-            IconButton(onClick = {
-                navController.navigate(Screen.Chat.route) {
-                    popUpTo(navController.graph.findStartDestination().id) {
-                        saveState = true
-                    }
-                    launchSingleTop = true
-                    restoreState = true
-                }
-            }) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.Send,
-                    contentDescription = "Chat",
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+//            TODO: Add Chat Functions
+//            IconButton(onClick = {
+//                navController.navigate(Screen.Chat.route) {
+//                    popUpTo(navController.graph.findStartDestination().id) {
+//                        saveState = true
+//                    }
+//                    launchSingleTop = true
+//                    restoreState = true
+//                }
+//            }) {
+//                Icon(
+//                    imageVector = Icons.AutoMirrored.Outlined.Send,
+//                    contentDescription = "Chat",
+//                    modifier = Modifier.size(24.dp)
+//                )
+//            }
 
             IconButton(onClick = {
                 navController.navigate(Screen.UserMap.route) {
