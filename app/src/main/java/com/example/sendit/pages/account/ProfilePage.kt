@@ -230,7 +230,6 @@ fun ProfilePage(
                             modifier = Modifier
                                 .size(150.dp)
                                 .background(
-                                    // Generate consistent color based on username
                                     color = MaterialTheme.colorScheme.primary,
                                     shape = MaterialTheme.shapes.small
                                 ),
@@ -472,7 +471,7 @@ fun Unfollow(profileUserId: String, currentUserId: String) {
 }
 
 // Delete Post
-fun deletePost (
+fun deletePost(
     post: PostData,
     db: FirebaseFirestore = Firebase.firestore,
     userId: String,

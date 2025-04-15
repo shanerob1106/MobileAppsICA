@@ -36,7 +36,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -58,10 +57,8 @@ import coil3.compose.AsyncImage
 import com.example.sendit.data.PostData
 import com.example.sendit.navigation.Screen
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import org.w3c.dom.Comment
 
 // ExpandableText composable
 @Composable
@@ -300,7 +297,7 @@ fun LikeButton(post: PostData) {
     var likeCount by remember { mutableIntStateOf(0) }
 
     // Setup Like Button Listener
-    LaunchedEffect (isLiked) {
+    LaunchedEffect(isLiked) {
         db.collection("users")
             .document(post.userId)
             .collection("posts")
@@ -322,7 +319,7 @@ fun LikeButton(post: PostData) {
             }
     }
 
-    Row{
+    Row {
         // Like Button
         IconButton(
             onClick = {
@@ -389,7 +386,7 @@ fun CommentButton(post: PostData, navController: NavController) {
             }
     }
 
-    Row{
+    Row {
         // Comments Button
         IconButton(onClick = {
             navController.navigate(Screen.Comments.route + "/${post.userId}/${post.postId}") {

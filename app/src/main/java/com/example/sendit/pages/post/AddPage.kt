@@ -1,4 +1,4 @@
-package com.example.sendit.pages.interaction
+package com.example.sendit.pages.post
 
 import android.content.Context
 import android.net.Uri

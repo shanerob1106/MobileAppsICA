@@ -3,33 +3,46 @@ package com.example.sendit.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.sendit.pages.HomePage
 import com.example.sendit.pages.account.LoginPage
 import com.example.sendit.pages.account.ProfilePage
+import com.example.sendit.pages.activity.ActivitiesPage
+import com.example.sendit.pages.activity.RouteType
+import com.example.sendit.pages.activity.StartActivity
 import com.example.sendit.pages.interaction.AIPage
-import com.example.sendit.pages.interaction.AddPage
 import com.example.sendit.pages.interaction.ChatPage
-import com.example.sendit.pages.interaction.CommentPage
 import com.example.sendit.pages.interaction.CurrentUserLocation
-import com.example.sendit.pages.interaction.ActivitiesPage
 import com.example.sendit.pages.interaction.MapScreen
 import com.example.sendit.pages.interaction.SearchPage
 import com.example.sendit.pages.interaction.returnSelectedLocation
+import com.example.sendit.pages.post.AddPage
+import com.example.sendit.pages.post.CommentPage
 
 sealed class Screen(val route: String) {
+
+    // Profile
     data object Login : Screen("login")
-    data object Home : Screen("home")
-    data object Search : Screen("search")
-    data object Add : Screen("add")
-    data object AI : Screen("ai")
     data object Profile : Screen("profile")
+
+    // Posts
+    data object Home : Screen("home")
+    data object Add : Screen("add")
+    data object Comments : Screen("comments")
+
+    // Features
+    data object Search : Screen("search")
+    data object AI : Screen("ai")
     data object Chat : Screen("chat")
     data object Map : Screen("map")
     data object UserMap : Screen("usermap")
-    data object Comments : Screen("comments")
+
+    // Activities
     data object Activities : Screen("activities")
+    data object StartActivities : Screen("startActivities")
 }
 
 
@@ -89,7 +102,7 @@ fun SendItNavHost(
         }
 
         composable(Screen.Activities.route) {
-            ActivitiesPage()
+            ActivitiesPage(navController = navController)
         }
 
         composable(Screen.Comments.route + "/{userId}/{postId}") { backStackEntry ->
@@ -97,9 +110,24 @@ fun SendItNavHost(
             val postId = backStackEntry.arguments?.getString("postId")
             if (postId != null) {
                 if (userId != null) {
-                    CommentPage(postId = postId, userId = userId)
+                    CommentPage(postId = postId, userId = userId, navController = navController)
                 }
             }
+        }
+
+        // Route logs
+        composable(
+            "startActivity/{routeType}",
+            arguments = listOf(navArgument("routeType") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val routeTypeStr =
+                backStackEntry.arguments?.getString("routeType") ?: RouteType.BOULDER.name
+            val routeType = RouteType.valueOf(routeTypeStr)
+
+            StartActivity(
+                routeType = routeType,
+                navController = navController
+            )
         }
     }
 }
