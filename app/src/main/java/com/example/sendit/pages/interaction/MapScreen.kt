@@ -188,7 +188,7 @@ fun MapScreen(
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(
             userLocation ?: LatLng(0.0, 0.0), // Default to (0,0) if user location not available
-            userLocation?.let { 15f } ?: 2f // Zoom level 15 for user location, 2 for world view
+            userLocation?.let { 10f } ?: 2f
         )
     }
 
@@ -263,30 +263,14 @@ fun MapScreen(
     }
 }
 
-fun returnSelectedLocation(navController: NavController, latitude: Double, longitude: Double) {
+fun returnSelectedLocation(
+    navController: NavController,
+    latitude: Double,
+    longitude: Double
+) {
     navController.previousBackStackEntry?.savedStateHandle?.set(
         "location",
         Pair(latitude, longitude)
     )
     navController.popBackStack()
 }
-
-// SAMPLE CODE - CODE THAT WAS PREVIOUSLY IN THE MAP SCREEN
-
-// Display coordinates at the bottom
-//                userLocation?.let { position ->
-//                    Text(
-//                        text = "Your Location: ${
-//                            String.format(
-//                                "%.6f",
-//                                position.latitude
-//                            )
-//                        }, ${String.format("%.6f", position.longitude)}",
-//                        color = MaterialTheme.colorScheme.onSurface,
-//                        fontSize = 12.sp,
-//                        modifier = Modifier
-//                            .align(Alignment.BottomCenter)
-//                            .padding(bottom = 16.dp)
-//                            .padding(horizontal = 16.dp)
-//                    )
-//                }

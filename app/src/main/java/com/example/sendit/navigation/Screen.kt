@@ -11,6 +11,7 @@ import com.example.sendit.pages.HomePage
 import com.example.sendit.pages.account.LoginPage
 import com.example.sendit.pages.account.ProfilePage
 import com.example.sendit.pages.activity.ActivitiesPage
+import com.example.sendit.pages.activity.FinishActivity
 import com.example.sendit.pages.activity.RouteType
 import com.example.sendit.pages.activity.StartActivity
 import com.example.sendit.pages.interaction.AIPage
@@ -42,7 +43,8 @@ sealed class Screen(val route: String) {
 
     // Activities
     data object Activities : Screen("activities")
-    data object StartActivities : Screen("startActivities")
+    data object FinishActivity : Screen("finishActivity")
+    data object MapForFinishActivity : Screen("mapForFinishActivity")
 }
 
 
@@ -128,6 +130,32 @@ fun SendItNavHost(
                 routeType = routeType,
                 navController = navController
             )
+        }
+
+        composable(
+            route = Screen.FinishActivity.route + "/{routeType}/{maxAltitude}/{activityTime}",
+            arguments = listOf(
+                navArgument("routeType") { type = NavType.StringType },
+                navArgument("maxAltitude") { type = NavType.FloatType },
+                navArgument("activityTime") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val routeType = RouteType.valueOf(backStackEntry.arguments?.getString("routeType")!!)
+            val maxAltitude = backStackEntry.arguments?.getFloat("maxAltitude")!!
+            val activityTime = backStackEntry.arguments?.getLong("activityTime")!!
+
+            FinishActivity(
+                routeType = routeType,
+                maxAltitude = maxAltitude,
+                activityTime = activityTime,
+                navController = navController
+            )
+        }
+
+        composable(Screen.MapForFinishActivity.route) {
+            MapScreen { lat, lng ->
+                returnSelectedLocation(navController, lat, lng)
+            }
         }
     }
 }

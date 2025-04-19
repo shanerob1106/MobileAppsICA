@@ -1,6 +1,7 @@
 package com.example.sendit.helpers
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -56,6 +57,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import coil3.compose.AsyncImage
 import com.example.sendit.data.PostData
 import com.example.sendit.navigation.Screen
+import com.example.sendit.pages.activity.RouteType
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -411,4 +413,55 @@ fun CommentButton(post: PostData, navController: NavController) {
     }
 }
 
+fun uploadActivity(
+    routeName: String,
+    routeGrade: String,
+    routeType: RouteType,
+    maxAltitude: Float,
+    activityTime: Long,
+    longitude: Double,
+    latitude: Double,
+    navController: NavController
+) {
+    val userId = Firebase.auth.currentUser?.uid ?: return
+    val db = Firebase.firestore
+
+    val activity = hashMapOf(
+        "userId" to userId,
+        "routeName" to routeName,
+        "routeGrade" to routeGrade,
+        "maxAltitude" to maxAltitude,
+        "activityTime" to activityTime,
+        "longitude" to longitude,
+        "latitude" to latitude,
+        "totalFalls" to 0,
+        "routeWeather" to "Sunny",
+        "timestamp" to System.currentTimeMillis()
+    )
+
+    db.collection("users")
+        .document(userId)
+        .collection("activities")
+        .document(routeType.name)
+        .collection("sessions")
+        .add(activity)
+        .addOnSuccessListener {
+            navController.navigate(Screen.Activities.route) {
+                popUpTo(Screen.Activities.route) { inclusive = true }
+                launchSingleTop = true
+            }
+
+            Log.d("Activity Upload: PASS", "Activity Uploaded Successfully")
+
+        }
+        .addOnFailureListener { exception ->
+            Log.w("Activity Upload: FAIL", "Activity Upload Failed", exception)
+            // Show error message to user
+            Toast.makeText(
+                navController.context,
+                "Failed to upload activity: ${exception.message}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+}
 

@@ -3,7 +3,9 @@ package com.example.sendit.pages.activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -11,6 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -51,19 +55,22 @@ fun RouteStyles(
         RouteTypeButton(
             text = "Boulder",
             isSelected = selectedRouteType == RouteType.BOULDER,
-            onClick = { onRouteTypeSelected(RouteType.BOULDER) }
+            onClick = { onRouteTypeSelected(RouteType.BOULDER) },
+            modifier = Modifier.weight(1f)
         )
 
         RouteTypeButton(
             text = "Sport",
             isSelected = selectedRouteType == RouteType.SPORT,
-            onClick = { onRouteTypeSelected(RouteType.SPORT) }
+            onClick = { onRouteTypeSelected(RouteType.SPORT) },
+            modifier = Modifier.weight(1f)
         )
 
         RouteTypeButton(
             text = "Traditional",
             isSelected = selectedRouteType == RouteType.TRADITIONAL,
-            onClick = { onRouteTypeSelected(RouteType.TRADITIONAL) }
+            onClick = { onRouteTypeSelected(RouteType.TRADITIONAL) },
+            modifier = Modifier.weight(1f)
         )
     }
 }
@@ -72,11 +79,12 @@ fun RouteStyles(
 fun RouteTypeButton(
     text: String,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Button(
-        modifier = Modifier
-            .padding(5.dp),
+        modifier = modifier
+            .padding(horizontal = 4.dp, vertical = 5.dp),
         onClick = onClick,
         colors = if (isSelected) {
             ButtonDefaults.buttonColors(
@@ -90,7 +98,10 @@ fun RouteTypeButton(
             )
         }
     ) {
-        Text(text = text)
+        Text(
+            text = text,
+            maxLines = 1
+        )
     }
 }
 
@@ -101,24 +112,73 @@ fun ClimbCard() {
             .padding(5.dp)
             .fillMaxWidth()
     ) {
-        Column()
-        {
+        Column {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(5.dp),
+                    .padding(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "Climb Name",
-                    fontSize = 18.sp,
-                    style = TextStyle(color = MaterialTheme.colorScheme.primary)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Climb Name",
+                            fontSize = 18.sp,
+                            style = TextStyle(color = MaterialTheme.colorScheme.primary)
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        Text(
+                            text = "01/01/2025", // Date Format: DD/MM/YYYY
+                            fontSize = 18.sp,
+                            style = TextStyle(color = MaterialTheme.colorScheme.primary)
+                        )
+                    }
+
+                    Column {
+                        val isFlashed = true
+                        if (isFlashed) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Flashed",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Not Flashed",
+                                tint = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    }
+
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        IconButton(
+                            onClick = {/*TODO: Delete a logged activity*/ },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete Post",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
             }
 
             Row(
                 modifier = Modifier
-                    .padding(10.dp)
+                    .padding(8.dp)
                     .fillMaxWidth()
             ) {
                 // Placeholder for Climb Grade
@@ -199,7 +259,9 @@ fun ClimbCard() {
 }
 
 @Composable
-fun RouteStatsCard() {
+fun RouteStatsCard(
+    routeType: RouteType
+) {
     Card(
         modifier = Modifier
             .padding(5.dp)
@@ -215,7 +277,7 @@ fun RouteStatsCard() {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Ability",
+                    text = "${routeType.name.lowercase().capitalize()} - Activity",
                     fontSize = 28.sp,
                     style = TextStyle(color = MaterialTheme.colorScheme.primary)
                 )
@@ -313,38 +375,27 @@ fun RouteStatsCard() {
 }
 
 @Composable
-fun ActivityContent(routeType: RouteType) {
+fun ActivityContent(
+    routeType: RouteType
+) {
     when (routeType) {
-        RouteType.BOULDER -> {
-            LazyColumn {
+        RouteType.BOULDER, RouteType.SPORT, RouteType.TRADITIONAL -> {
+            LazyColumn(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                contentPadding = PaddingValues(bottom = 80.dp) // Extra padding at bottom to avoid FAB overlap
+            ) {
                 item {
-                    RouteStatsCard()
+                    RouteStatsCard(routeType)
                 }
 
-                items(5) { index ->
-                    ClimbCard()
-                }
-            }
-        }
-
-        RouteType.SPORT -> {
-            LazyColumn {
-                item {
-                    RouteStatsCard()
+                // Dynamic number of items based on route type
+                val itemCount = when (routeType) {
+                    RouteType.BOULDER -> 5
+                    RouteType.SPORT -> 3
+                    RouteType.TRADITIONAL -> 4
                 }
 
-                items(3) { index ->
-                    ClimbCard()
-                }
-            }
-        }
-
-        RouteType.TRADITIONAL -> {
-            LazyColumn {
-                item {
-                    RouteStatsCard()
-                }
-                items(4) { index ->
+                items(itemCount) { index ->
                     ClimbCard()
                 }
             }
@@ -357,10 +408,6 @@ fun ActivitiesPage(
     modifier: Modifier = Modifier,
     navController: NavController
 ) {
-
-//    val uid = Firebase.auth.currentUser?.uid.toString()
-//    setupRoutes(uid)
-
     var selectedRouteType by remember { mutableStateOf(RouteType.BOULDER) }
 
     Scaffold(
@@ -368,13 +415,14 @@ fun ActivitiesPage(
         topBar = {
             Column(
                 modifier = Modifier
-                    .padding(start = 16.dp, top = 16.dp)
                     .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
                     text = "Activities Page",
                     fontSize = 28.sp,
-                    style = TextStyle(color = MaterialTheme.colorScheme.primary)
+                    style = TextStyle(color = MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
                 RouteStyles(
                     selectedRouteType = selectedRouteType,
@@ -382,7 +430,6 @@ fun ActivitiesPage(
                 )
             }
         },
-
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
@@ -396,14 +443,14 @@ fun ActivitiesPage(
                     contentDescription = "Add Activity"
                 )
             }
-        }
-
+        },
+        // Fix the gap by setting appropriate bottom padding
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
         ) {
             // Display content based on selected route type
             ActivityContent(routeType = selectedRouteType)
