@@ -1,5 +1,6 @@
 package com.example.sendit.pages.activity
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -26,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +40,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.sendit.data.ActivityData
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 enum class RouteType {
     BOULDER,
@@ -106,7 +114,17 @@ fun RouteTypeButton(
 }
 
 @Composable
-fun ClimbCard() {
+fun ClimbCard(
+    activity: ActivityData?
+) {
+    // Default values in case activity is null (for preview purposes)
+    val routeName = activity?.routeName ?: "Climb Name"
+    val date = activity?.timeStamp?.toDate()?.let {
+        java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(it)
+    } ?: "01/01/2025"
+
+    val grade = activity?.routeGrade ?: "V0"
+
     Card(
         modifier = Modifier
             .padding(5.dp)
@@ -124,7 +142,7 @@ fun ClimbCard() {
                 ) {
                     Column {
                         Text(
-                            text = "Climb Name",
+                            text = routeName,
                             fontSize = 18.sp,
                             style = TextStyle(color = MaterialTheme.colorScheme.primary)
                         )
@@ -134,14 +152,14 @@ fun ClimbCard() {
                         modifier = Modifier.padding(8.dp)
                     ) {
                         Text(
-                            text = "01/01/2025", // Date Format: DD/MM/YYYY
-                            fontSize = 18.sp,
+                            text = date,
+                            fontSize = 12.sp,
                             style = TextStyle(color = MaterialTheme.colorScheme.primary)
                         )
                     }
 
                     Column {
-                        val isFlashed = true
+                        val isFlashed = true // You would determine this from activity data
                         if (isFlashed) {
                             Icon(
                                 imageVector = Icons.Default.Check,
@@ -156,7 +174,6 @@ fun ClimbCard() {
                             )
                         }
                     }
-
 
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -191,9 +208,9 @@ fun ClimbCard() {
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Placeholder text Hueco V0
+                    // Use the actual grade from the activity
                     Text(
-                        text = "V0",
+                        text = "V" + grade,
                         color = MaterialTheme.colorScheme.onPrimary,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
@@ -375,33 +392,133 @@ fun RouteStatsCard(
 }
 
 @Composable
-fun ActivityContent(
-    routeType: RouteType
-) {
-    when (routeType) {
-        RouteType.BOULDER, RouteType.SPORT, RouteType.TRADITIONAL -> {
-            LazyColumn(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(bottom = 80.dp) // Extra padding at bottom to avoid FAB overlap
-            ) {
-                item {
-                    RouteStatsCard(routeType)
+fun RouteActivities(routeType: RouteType): List<ActivityData> {
+    // Firebase variables
+    val db = Firebase.firestore
+    val auth = Firebase.auth
+    val uid = auth.currentUser?.uid
+
+    // Activity variables
+    val activityListener = remember { mutableStateOf<ListenerRegistration?>(null) }
+    var activities by remember { mutableStateOf(emptyList<ActivityData>()) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    // Get the route type document ID
+    val routeTypeDocId = when (routeType) {
+        RouteType.BOULDER -> "boulder"
+        RouteType.SPORT -> "sport"
+        RouteType.TRADITIONAL -> "traditional"
+    }
+
+    // Set up listener when the composable is first composed
+    // or when route type changes
+    activityListener.value?.remove()
+
+    uid?.let { uid ->
+        val listener = db.collection("users")
+            .document(uid)
+            .collection("activities")
+            .document(routeType.name.uppercase())
+            .collection("sessions")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("loadRouteData", "Error listening for $routeTypeDocId activities", error)
+                    return@addSnapshotListener
                 }
 
-                // Dynamic number of items based on route type
-                val itemCount = when (routeType) {
-                    RouteType.BOULDER -> 5
-                    RouteType.SPORT -> 3
-                    RouteType.TRADITIONAL -> 4
-                }
+                if (snapshot != null) {
+                    val unsortedActivities = snapshot.documents.mapNotNull { document ->
+                        val activityId = document.id
+                        val routeName = document.getString("routeName") ?: "No Route Name"
+                        val date = document.getTimestamp("timestamp")
+                        val grade = document.getString("routeGrade") ?: "No Grade"
+                        val time = document.getLong("activityTime") ?: 0L
+                        val maxAltitude = document.getDouble("maxAltitude")?.toFloat() ?: 0f
 
-                items(itemCount) { index ->
-                    ClimbCard()
+                        ActivityData(
+                            activityId = activityId,
+                            routeName = routeName,
+                            timeStamp = date,
+                            routeGrade = grade,
+                            activityTime = time,
+                            maxAltitude = maxAltitude
+                        )
+                    }
+
+                    activities = unsortedActivities.sortedByDescending { it.timeStamp }
+                    isLoading = false
                 }
             }
+        activityListener.value = listener
+    }
+
+    return activities
+}
+
+@Composable
+fun ActivityContent(routeType: RouteType) {
+    val db = Firebase.firestore
+    val auth = Firebase.auth
+    val uid = auth.currentUser?.uid
+    var activities by remember { mutableStateOf(emptyList<ActivityData>()) }
+
+    // Set up Firestore listener using DisposableEffect
+    DisposableEffect(routeType) {
+        val listener = uid?.let { userId ->
+            db.collection("users")
+                .document(userId)
+                .collection("activities")
+                .document(routeType.name.uppercase())
+                .collection("sessions")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.e("ActivityContent", "Error loading activities", error)
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshot != null) {
+                        val sortedActivities = snapshot.documents.mapNotNull { doc ->
+                            val activityId = doc.id
+                            val routeName = doc.getString("routeName") ?: "No Route Name"
+                            val date = doc.getTimestamp("timestamp")
+                            val grade = doc.getString("routeGrade") ?: "No Grade"
+                            val time = doc.getLong("activityTime") ?: 0L
+                            val maxAltitude = doc.getDouble("maxAltitude")?.toFloat() ?: 0f
+
+                            ActivityData(
+                                activityId = activityId,
+                                routeName = routeName,
+                                timeStamp = date,
+                                routeGrade = grade,
+                                activityTime = time,
+                                maxAltitude = maxAltitude
+                            )
+                        }.sortedByDescending { it.timeStamp }
+
+                        activities = sortedActivities
+                    }
+                }
+        }
+
+        onDispose {
+            listener?.remove()
+        }
+    }
+
+    LazyColumn(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(bottom = 80.dp)
+    ) {
+        item {
+            RouteStatsCard(routeType)
+        }
+
+        items(activities) { activity ->
+            ClimbCard(activity)
         }
     }
 }
+
 
 @Composable
 fun ActivitiesPage(
@@ -457,33 +574,3 @@ fun ActivitiesPage(
         }
     }
 }
-
-// Spare Code - May have a use
-//fun setupRoutes(
-//    uid: String
-//){
-//    val db = Firebase.firestore
-//
-//    val routes = db.collection("users")
-//        .document(uid)
-//        .collection("routes")
-//        .get()
-//
-//    if(routes.isSuccessful){
-//        Log.d("routes", "routes: ${routes.result}")
-//    } else {
-//        Log.w("routes", "routes: ${routes.exception}, no routes found.")
-//        val addBoulder = db.collection("users")
-//            .document(uid)
-//            .collection("routes")
-//            .add("boulder")
-//        val addSport = db.collection("users")
-//            .document(uid)
-//            .collection("routes")
-//            .add("sport")
-//        val addTrad = db.collection("users")
-//            .document(uid)
-//            .collection("routes")
-//            .add("traditional")
-//    }
-//}

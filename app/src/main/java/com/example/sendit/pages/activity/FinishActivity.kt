@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Button
@@ -41,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.sendit.helpers.uploadActivity
 import com.example.sendit.navigation.Screen
+import com.google.firebase.Timestamp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -213,6 +213,7 @@ fun FinishActivity(
                                 routeGrade = routeGradeText,
                                 longitude = longitude,
                                 latitude = latitude,
+                                timestamp = Timestamp.now(),
                                 navController = navController
                             )
                         }

@@ -58,6 +58,7 @@ import coil3.compose.AsyncImage
 import com.example.sendit.data.PostData
 import com.example.sendit.navigation.Screen
 import com.example.sendit.pages.activity.RouteType
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -245,7 +246,10 @@ fun PostItem(
 
             // Date post was made
             Text(
-                text = "Date Posted: " + post.timeStamp?.toDate().toString(),
+                text = (post.timeStamp?.toDate()?.let {
+                    java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+                        .format(it)
+                }).toString(),
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -421,6 +425,7 @@ fun uploadActivity(
     activityTime: Long,
     longitude: Double,
     latitude: Double,
+    timestamp: Timestamp,
     navController: NavController
 ) {
     val userId = Firebase.auth.currentUser?.uid ?: return
@@ -436,7 +441,7 @@ fun uploadActivity(
         "latitude" to latitude,
         "totalFalls" to 0,
         "routeWeather" to "Sunny",
-        "timestamp" to System.currentTimeMillis()
+        "timestamp" to timestamp
     )
 
     db.collection("users")
