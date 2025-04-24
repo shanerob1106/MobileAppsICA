@@ -92,11 +92,13 @@ fun StartActivity(
 
             // Frozen values for when session is paused
             var frozenCurrentAltitude by remember { mutableFloatStateOf(0f) }
-            var frozenAltitudeGained by remember { mutableFloatStateOf(0f) }
 
             // Timer and session state
             var sessionState by remember { mutableStateOf(SessionState.Idle) }
             var timer by remember { mutableLongStateOf(0L) }
+
+            // Size of calibration window (Higher = More accurate?)
+            val calibrationSize = 25
 
             // Convert pressure to altitude
             fun pressureToAltitude(p: Float): Float {
@@ -104,7 +106,7 @@ fun StartActivity(
             }
 
             // Auto-start tracking once calibration completes
-            if (sessionState == SessionState.Calibrating && pressureList.size >= 1) {
+            if (sessionState == SessionState.Calibrating && pressureList.size >= calibrationSize) {
                 LaunchedEffect(pressureList.size) {
                     startPressure = pressureList.average().toFloat()
                     startAltitude = pressureToAltitude(startPressure)
@@ -128,7 +130,7 @@ fun StartActivity(
                 onPressureChanged = { newPressure ->
                     pressure = newPressure
 
-                    if (sessionState == SessionState.Calibrating && pressureList.size < 25) {
+                    if (sessionState == SessionState.Calibrating && pressureList.size < calibrationSize) {
                         pressureList.add(newPressure)
                     }
 
@@ -177,14 +179,10 @@ fun StartActivity(
                     // Altitude info
                     val displayAltitude =
                         if (sessionState == SessionState.Tracking) currentAltitude else frozenCurrentAltitude
-                    val displayGained =
-                        if (sessionState == SessionState.Tracking) currentAltitude - startAltitude else frozenAltitudeGained
 
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Current Altitude: ${String.format("%.2f", displayAltitude)} m")
                         Text("Max Altitude: ${String.format("%.2f", maxAltitude)} m")
-                        Text("Altitude Gained: ${String.format("%.2f", displayGained)} m")
-                        Text("Total Falls: 0") // Placeholder
                     }
                 }
             }
@@ -203,7 +201,6 @@ fun StartActivity(
                         maxAltitude = 0f
                         timer = 0L
                         frozenCurrentAltitude = 0f
-                        frozenAltitudeGained = 0f
                         sessionState = SessionState.Calibrating
                     }) {
                         Text("Start")
@@ -212,9 +209,9 @@ fun StartActivity(
 
                 // Session Calibration
                 SessionState.Calibrating -> {
-                    Text("Calibrating barometer... (${pressureList.size}/25)")
+                    Text("Calibrating barometer... (${pressureList.size}/${calibrationSize})")
                     LinearProgressIndicator(
-                        progress = { pressureList.size / 25f },
+                        progress = { pressureList.size / calibrationSize.toFloat() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 8.dp)
@@ -225,7 +222,6 @@ fun StartActivity(
                 SessionState.Tracking -> {
                     Button(onClick = {
                         frozenCurrentAltitude = currentAltitude
-                        frozenAltitudeGained = currentAltitude - startAltitude
                         sessionState = SessionState.Paused
                     }) {
                         Text("Pause")
@@ -240,7 +236,6 @@ fun StartActivity(
                         }
                         Button(onClick = {
                             frozenCurrentAltitude = currentAltitude
-                            frozenAltitudeGained = currentAltitude - startAltitude
                             sessionState = SessionState.Stopped
                         }) {
                             Text("Stop")
