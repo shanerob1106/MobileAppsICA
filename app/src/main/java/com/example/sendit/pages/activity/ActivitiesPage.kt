@@ -1,6 +1,6 @@
 package com.example.sendit.pages.activity
 
-import android.util.Log
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,9 +44,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.sendit.data.ActivityData
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import java.util.Locale
 
 enum class RouteType {
     BOULDER,
@@ -55,7 +54,7 @@ enum class RouteType {
 }
 
 @Composable
-fun RouteStyles(
+fun RouteTypeOptions(
     selectedRouteType: RouteType,
     onRouteTypeSelected: (RouteType) -> Unit
 ) {
@@ -77,7 +76,7 @@ fun RouteStyles(
         )
 
         RouteTypeButton(
-            text = "Traditional",
+            text = "Trad",
             isSelected = selectedRouteType == RouteType.TRADITIONAL,
             onClick = { onRouteTypeSelected(RouteType.TRADITIONAL) },
             modifier = Modifier.weight(1f)
@@ -116,7 +115,7 @@ fun RouteTypeButton(
 }
 
 @Composable
-fun ClimbCard(
+fun ActivityCard(
     activity: ActivityData?,
     onDeleteClick: () -> Unit,
     onLocationClick: (Double, Double) -> Unit
@@ -163,18 +162,19 @@ fun ClimbCard(
                     }
 
                     Column {
-                        val isFlashed = true
-                        if (isFlashed) {
+                        if (activity!!.isFlashed) {
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = "Flashed",
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(28.dp)
                             )
                         } else {
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = "Not Flashed",
-                                tint = MaterialTheme.colorScheme.secondary
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(28.dp)
                             )
                         }
                     }
@@ -202,7 +202,7 @@ fun ClimbCard(
                     .padding(8.dp)
                     .fillMaxWidth()
             ) {
-                // Placeholder for Climb Grade
+                // Climb Grade
                 Box(
                     modifier = Modifier
                         .size(40.dp)
@@ -225,16 +225,16 @@ fun ClimbCard(
                     horizontalAlignment = Alignment.CenterHorizontally
 
                 ) {
-                    // Total Flashes
+                    // Total Ascents
                     Text(
-                        text = "Flashed",
+                        text = "Tries",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         style = TextStyle(color = MaterialTheme.colorScheme.primary)
                     )
-                    // Flashes
+
                     Text(
-                        text = "YES",
+                        text = activity!!.routeTries,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -245,19 +245,39 @@ fun ClimbCard(
                     horizontalAlignment = Alignment.CenterHorizontally
 
                 ) {
-                    // Total Ascents
                     Text(
-                        text = "Tries",
+                        text = "Height",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         style = TextStyle(color = MaterialTheme.colorScheme.primary)
                     )
-                    // Ascents
+
                     Text(
-                        text = "1",
+                        text = activity!!.maxAltitude.toDouble().routeDouble().toString() + "m",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
                     )
+
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+
+                ) {
+                    Text(
+                        text = "Time",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        style = TextStyle(color = MaterialTheme.colorScheme.primary)
+                    )
+
+                    Text(
+                        text = formatTime(activity!!.activityTime),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
                 }
 
                 Column(
@@ -283,9 +303,19 @@ fun ClimbCard(
 }
 
 @Composable
-fun RouteStatsCard(
-    routeType: RouteType
+fun ActivityStatsCard(
+    routeType: RouteType,
+    activities: List<ActivityData>
 ) {
+    // Calculate statistics from activities
+    val avgGrade = calculateAverageGrade(activities)
+    val totalFlashes = activities.count { it.isFlashed }
+    val totalAscents = activities.size
+    val totalHeight = activities.sumOf { it.maxAltitude.toDouble() }
+    val totalTime = activities.sumOf { it.activityTime }
+    val formattedTime = formatTime(totalTime)
+
+    // Main Stats Card
     Card(
         modifier = Modifier
             .padding(5.dp)
@@ -300,8 +330,10 @@ fun RouteStatsCard(
                     .padding(5.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Route Type Header
                 Text(
-                    text = "${routeType.name.lowercase().capitalize()} - Activity",
+                    text = "${routeType.name.lowercase()
+                        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }} - Activity",
                     fontSize = 28.sp,
                     style = TextStyle(color = MaterialTheme.colorScheme.primary)
                 )
@@ -312,7 +344,7 @@ fun RouteStatsCard(
                     .padding(16.dp)
                     .fillMaxWidth()
             ) {
-                // Placeholder for Avg. Climb Grade
+                // Display Average Grade
                 Box(
                     modifier = Modifier
                         .size(75.dp)
@@ -322,50 +354,45 @@ fun RouteStatsCard(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Placeholder text Hueco V0
                     Text(
-                        text = "V0",
+                        text = avgGrade,
                         color = MaterialTheme.colorScheme.onPrimary,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
                     )
                 }
 
+                // Total Flashes Column
                 Column(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally
-
                 ) {
-                    // Total Flashes
                     Text(
                         text = "Flashes",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold,
                         style = TextStyle(color = MaterialTheme.colorScheme.primary)
                     )
-                    // Flashes
                     Text(
-                        text = "0",
+                        text = totalFlashes.toString(),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
 
+                // Total Climbs Column
                 Column(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally
-
                 ) {
-                    // Total Ascents
                     Text(
-                        text = "Ascents",
+                        text = "Climbs",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold,
                         style = TextStyle(color = MaterialTheme.colorScheme.primary)
                     )
-                    // Ascents
                     Text(
-                        text = "0",
+                        text = totalAscents.toString(),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -375,22 +402,23 @@ fun RouteStatsCard(
             Row(
                 modifier = Modifier.padding(16.dp)
             ) {
+                // Total Height Column
                 Column(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Total Height Climbed
                     Text(
-                        text = "Height: " + "0m"
+                        text = "Height: ${totalHeight.routeDouble()}m"
                     )
                 }
+
+                // Total Time Column
                 Column(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Total Time Spent Climbing
                     Text(
-                        text = "Time: " + "00:00"
+                        text = "Time: $formattedTime"
                     )
                 }
             }
@@ -401,15 +429,21 @@ fun RouteStatsCard(
 @Composable
 fun ActivityContent(
     routeType: RouteType,
-    navController: NavController
+    navController: NavController,
+    viewModel: ActivityViewModel = remember { ActivityViewModel() }
 ) {
-    val db = Firebase.firestore
     val auth = Firebase.auth
     val uid = auth.currentUser?.uid
-    var activities by remember { mutableStateOf(emptyList<ActivityData>()) }
+    val activities by viewModel.activities
 
-    var activityToDelete by remember { mutableStateOf <ActivityData?>(null) }
+    var activityToDelete by remember { mutableStateOf<ActivityData?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    // Load activities when route type changes
+    DisposableEffect(routeType) {
+        viewModel.loadActivities(routeType)
+        onDispose { }
+    }
 
     // Delete confirmation dialog
     if (showDeleteDialog && activityToDelete != null) {
@@ -419,11 +453,24 @@ fun ActivityContent(
                 activityToDelete = null
             },
             title = { Text("Delete Activity") },
-            text = { Text("Are you sure you want to delete this " + routeType.name.lowercase().capitalize() + " activity?") },
+            text = {
+                Text(
+                    "Are you sure you want to delete this ${
+                        routeType.name.lowercase()
+                            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                    } activity?"
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        activityToDelete?.let { deleteActivity(userId = uid!!, activityId = it.activityId, routeType = routeType) }
+                        activityToDelete?.let {
+                            viewModel.deleteActivity(
+                                userId = uid!!,
+                                activityId = it.activityId,
+                                routeType = routeType
+                            )
+                        }
                         showDeleteDialog = false
                         activityToDelete = null
                     }
@@ -444,67 +491,22 @@ fun ActivityContent(
         )
     }
 
-    // Set up Firestore listener using DisposableEffect
-    DisposableEffect(routeType) {
-        val listener = uid?.let { userId ->
-            db.collection("users")
-                .document(userId)
-                .collection("activities")
-                .document(routeType.name.uppercase())
-                .collection("sessions")
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.e("ActivityContent", "Error loading activities", error)
-                        return@addSnapshotListener
-                    }
-
-                    if (snapshot != null) {
-                        val sortedActivities = snapshot.documents.mapNotNull { doc ->
-                            val activityId = doc.id
-                            val routeName = doc.getString("routeName") ?: "No Route Name"
-                            val date = doc.getTimestamp("timestamp")
-                            val grade = doc.getString("routeGrade") ?: "No Grade"
-                            val time = doc.getLong("activityTime") ?: 0L
-                            val maxAltitude = doc.getDouble("maxAltitude")?.toFloat() ?: 0f
-
-                            ActivityData(
-                                activityId = activityId,
-                                routeName = routeName,
-                                timeStamp = date,
-                                routeGrade = grade,
-                                activityTime = time,
-                                maxAltitude = maxAltitude,
-                                latitude = doc.getDouble("latitude") ?: 0.0,
-                                longitude = doc.getDouble("longitude") ?: 0.0
-                            )
-                        }.sortedByDescending { it.timeStamp }
-
-                        activities = sortedActivities
-                    }
-                }
-        }
-
-        onDispose {
-            listener?.remove()
-        }
-    }
-
     LazyColumn(
         modifier = Modifier.padding(horizontal = 16.dp),
         contentPadding = PaddingValues(bottom = 80.dp)
     ) {
         item {
-            RouteStatsCard(routeType)
+            ActivityStatsCard(routeType = routeType, activities = activities)
         }
 
         items(activities) { activity ->
-            ClimbCard(
+            ActivityCard(
                 activity,
                 onDeleteClick = {
                     activityToDelete = activity
                     showDeleteDialog = true
                 },
-                onLocationClick = {lat, lng ->
+                onLocationClick = { lat, lng ->
                     navController.navigate("viewLocation/$lat/$lng")
                 }
             )
@@ -519,6 +521,7 @@ fun ActivitiesPage(
     navController: NavController
 ) {
     var selectedRouteType by remember { mutableStateOf(RouteType.BOULDER) }
+    val viewModel = remember { ActivityViewModel() }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -534,7 +537,7 @@ fun ActivitiesPage(
                     style = TextStyle(color = MaterialTheme.colorScheme.primary),
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-                RouteStyles(
+                RouteTypeOptions(
                     selectedRouteType = selectedRouteType,
                     onRouteTypeSelected = { selectedRouteType = it }
                 )
@@ -554,7 +557,6 @@ fun ActivitiesPage(
                 )
             }
         },
-        // Fix the gap by setting appropriate bottom padding
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Box(
@@ -562,25 +564,51 @@ fun ActivitiesPage(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Display content based on selected route type
-            ActivityContent(routeType = selectedRouteType, navController = navController)
+            // Display content based on selected route type, passing the shared viewModel
+            ActivityContent(
+                routeType = selectedRouteType,
+                navController = navController,
+                viewModel = viewModel
+            )
         }
     }
 }
 
-// Delete Activity
-fun deleteActivity(
-    routeType: RouteType,
-    userId: String,
-    activityId: String
-) {
-    val db = Firebase.firestore
+// Function to calculate average climbing grade
+private fun calculateAverageGrade(activities: List<ActivityData>): String {
+    if (activities.isEmpty()) return "V0"
 
-    db.collection("users")
-        .document(userId)
-        .collection("activities")
-        .document(routeType.name)
-        .collection("sessions")
-        .document(activityId)
-        .delete()
+    val grades = activities.mapNotNull { activity ->
+        activity.routeGrade.takeIf { it.isNotEmpty() && it != "No Grade" }?.let {
+            try {
+                // Grade format "V1", "V2"
+                it.removePrefix("V").toIntOrNull() ?: 0
+            } catch (e: Exception) {
+                0
+            }
+        } ?: 0
+    }
+
+    return if (grades.isEmpty()) "V0"
+    else "V${(grades.sum().toFloat() / grades.size).toInt()}"
+}
+
+// Time format
+@SuppressLint("DefaultLocale")
+private fun formatTime(totalMilliseconds: Long): String {
+    val totalSeconds = totalMilliseconds / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+
+    return if (hours > 0) {
+        String.format("%d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format("%02d:%02d", minutes, seconds)
+    }
+}
+
+@SuppressLint("DefaultLocale")
+private fun Double.routeDouble(): Double {
+    return String.format("%.2f", this).toDouble()
 }

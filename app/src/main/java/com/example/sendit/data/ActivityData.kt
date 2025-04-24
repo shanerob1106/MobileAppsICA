@@ -17,6 +17,8 @@ data class ActivityData(
     val routeType: String = "",
     val routeName: String = "",
     val routeGrade: String = "",
+    val routeTries: String = "",
+    val isFlashed: Boolean = false,
 
     // Activity Info
     val activityTime: Long = 0L,

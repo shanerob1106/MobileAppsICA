@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -66,7 +67,8 @@ fun FinishActivity(
                     }
                 }
             )
-        }
+        },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -77,6 +79,7 @@ fun FinishActivity(
             // Route name and grade
             var routeNameText by rememberSaveable { mutableStateOf("") }
             var routeGradeText by rememberSaveable { mutableStateOf("") }
+            var routeTriesText by rememberSaveable { mutableStateOf("") }
             var showGradeError by remember { mutableStateOf(false) }
             val context = LocalContext.current
 
@@ -122,6 +125,26 @@ fun FinishActivity(
                 supportingText = {
                     if (showGradeError) {
                         Text("Please enter a number between 1 and 17")
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = routeTriesText,
+                onValueChange = { newTries ->
+                    if (newTries.isEmpty() || newTries.all { it.isDigit() }) {
+                        routeTriesText = newTries
+                        showGradeError =
+                            newTries.toIntOrNull()?.let { it !in 1..10000 } ?: false
+                    }
+                },
+                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                label = { Text("Tries") },
+                isError = showGradeError,
+                supportingText = {
+                    if (showGradeError) {
+                        Text("Please enter a valid number")
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -205,12 +228,16 @@ fun FinishActivity(
                         }
 
                         else -> {
+                            val isFlashed = routeTriesText.toInt() == 1
+
                             uploadActivity(
                                 routeType = routeType,
-                                maxAltitude = maxAltitude,
-                                activityTime = activityTime,
                                 routeName = routeNameText,
                                 routeGrade = routeGradeText,
+                                routeTries = routeTriesText,
+                                isFlashed = isFlashed,
+                                maxAltitude = maxAltitude,
+                                activityTime = activityTime,
                                 longitude = longitude,
                                 latitude = latitude,
                                 timestamp = Timestamp.now(),

@@ -113,7 +113,6 @@ fun PostItem(
             .fillMaxWidth()
             .padding(vertical = 5.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.primaryContainer),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
 
@@ -421,6 +420,8 @@ fun uploadActivity(
     routeName: String,
     routeGrade: String,
     routeType: RouteType,
+    routeTries: String,
+    isFlashed: Boolean,
     maxAltitude: Float,
     activityTime: Long,
     longitude: Double,
@@ -435,11 +436,12 @@ fun uploadActivity(
         "userId" to userId,
         "routeName" to routeName,
         "routeGrade" to routeGrade,
+        "routeTries" to routeTries,
         "maxAltitude" to maxAltitude,
+        "isFlashed" to isFlashed,
         "activityTime" to activityTime,
         "longitude" to longitude,
         "latitude" to latitude,
-        "totalFalls" to 0,
         "routeWeather" to "Sunny",
         "timestamp" to timestamp
     )
