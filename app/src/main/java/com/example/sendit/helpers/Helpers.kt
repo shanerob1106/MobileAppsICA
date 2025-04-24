@@ -469,4 +469,3 @@ fun uploadActivity(
             ).show()
         }
 }
-

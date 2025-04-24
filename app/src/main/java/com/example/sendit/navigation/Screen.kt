@@ -19,6 +19,7 @@ import com.example.sendit.pages.interaction.ChatPage
 import com.example.sendit.pages.interaction.CurrentUserLocation
 import com.example.sendit.pages.interaction.MapScreen
 import com.example.sendit.pages.interaction.SearchPage
+import com.example.sendit.pages.interaction.ViewLocationScreen
 import com.example.sendit.pages.interaction.returnSelectedLocation
 import com.example.sendit.pages.post.AddPage
 import com.example.sendit.pages.post.CommentPage
@@ -156,6 +157,23 @@ fun SendItNavHost(
             MapScreen { lat, lng ->
                 returnSelectedLocation(navController, lat, lng)
             }
+        }
+
+        composable(
+            route = "viewLocation/{latitude}/{longitude}",
+            arguments = listOf(
+                navArgument("latitude") { type = NavType.StringType },
+                navArgument("longitude") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val latitude = backStackEntry.arguments?.getString("latitude")?.toDoubleOrNull() ?: 0.0
+            val longitude = backStackEntry.arguments?.getString("longitude")?.toDoubleOrNull() ?: 0.0
+
+            ViewLocationScreen(
+                navController = navController,
+                latitude = latitude,
+                longitude = longitude
+            )
         }
     }
 }

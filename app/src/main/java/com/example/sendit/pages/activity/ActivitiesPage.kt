@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -27,6 +28,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -42,7 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.sendit.data.ActivityData
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
@@ -115,7 +117,9 @@ fun RouteTypeButton(
 
 @Composable
 fun ClimbCard(
-    activity: ActivityData?
+    activity: ActivityData?,
+    onDeleteClick: () -> Unit,
+    onLocationClick: (Double, Double) -> Unit
 ) {
     // Default values in case activity is null (for preview purposes)
     val routeName = activity?.routeName ?: "Climb Name"
@@ -159,7 +163,7 @@ fun ClimbCard(
                     }
 
                     Column {
-                        val isFlashed = true // You would determine this from activity data
+                        val isFlashed = true
                         if (isFlashed) {
                             Icon(
                                 imageVector = Icons.Default.Check,
@@ -180,12 +184,12 @@ fun ClimbCard(
                         horizontalAlignment = Alignment.End
                     ) {
                         IconButton(
-                            onClick = {/*TODO: Delete a logged activity*/ },
+                            onClick = onDeleteClick,
                             modifier = Modifier.size(24.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete Post",
+                                contentDescription = "Delete Activity",
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }
@@ -208,7 +212,6 @@ fun ClimbCard(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Use the actual grade from the activity
                     Text(
                         text = "V" + grade,
                         color = MaterialTheme.colorScheme.onPrimary,
@@ -262,7 +265,11 @@ fun ClimbCard(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     IconButton(
-                        onClick = { /* Handle button click */ }
+                        onClick = {
+                            if (activity != null) {
+                                onLocationClick(activity.latitude, activity.longitude)
+                            }
+                        }
                     ) {
                         Icon(
                             imageVector = Icons.Default.Place,
@@ -392,75 +399,50 @@ fun RouteStatsCard(
 }
 
 @Composable
-fun RouteActivities(routeType: RouteType): List<ActivityData> {
-    // Firebase variables
+fun ActivityContent(
+    routeType: RouteType,
+    navController: NavController
+) {
     val db = Firebase.firestore
     val auth = Firebase.auth
     val uid = auth.currentUser?.uid
-
-    // Activity variables
-    val activityListener = remember { mutableStateOf<ListenerRegistration?>(null) }
     var activities by remember { mutableStateOf(emptyList<ActivityData>()) }
-    var isLoading by remember { mutableStateOf(true) }
 
-    // Get the route type document ID
-    val routeTypeDocId = when (routeType) {
-        RouteType.BOULDER -> "boulder"
-        RouteType.SPORT -> "sport"
-        RouteType.TRADITIONAL -> "traditional"
-    }
+    var activityToDelete by remember { mutableStateOf <ActivityData?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
-    // Set up listener when the composable is first composed
-    // or when route type changes
-    activityListener.value?.remove()
-
-    uid?.let { uid ->
-        val listener = db.collection("users")
-            .document(uid)
-            .collection("activities")
-            .document(routeType.name.uppercase())
-            .collection("sessions")
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    Log.e("loadRouteData", "Error listening for $routeTypeDocId activities", error)
-                    return@addSnapshotListener
-                }
-
-                if (snapshot != null) {
-                    val unsortedActivities = snapshot.documents.mapNotNull { document ->
-                        val activityId = document.id
-                        val routeName = document.getString("routeName") ?: "No Route Name"
-                        val date = document.getTimestamp("timestamp")
-                        val grade = document.getString("routeGrade") ?: "No Grade"
-                        val time = document.getLong("activityTime") ?: 0L
-                        val maxAltitude = document.getDouble("maxAltitude")?.toFloat() ?: 0f
-
-                        ActivityData(
-                            activityId = activityId,
-                            routeName = routeName,
-                            timeStamp = date,
-                            routeGrade = grade,
-                            activityTime = time,
-                            maxAltitude = maxAltitude
-                        )
+    // Delete confirmation dialog
+    if (showDeleteDialog && activityToDelete != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteDialog = false
+                activityToDelete = null
+            },
+            title = { Text("Delete Activity") },
+            text = { Text("Are you sure you want to delete this " + routeType.name.lowercase().capitalize() + " activity?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        activityToDelete?.let { deleteActivity(userId = uid!!, activityId = it.activityId, routeType = routeType) }
+                        showDeleteDialog = false
+                        activityToDelete = null
                     }
-
-                    activities = unsortedActivities.sortedByDescending { it.timeStamp }
-                    isLoading = false
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        activityToDelete = null
+                    }
+                ) {
+                    Text("Cancel")
                 }
             }
-        activityListener.value = listener
+        )
     }
-
-    return activities
-}
-
-@Composable
-fun ActivityContent(routeType: RouteType) {
-    val db = Firebase.firestore
-    val auth = Firebase.auth
-    val uid = auth.currentUser?.uid
-    var activities by remember { mutableStateOf(emptyList<ActivityData>()) }
 
     // Set up Firestore listener using DisposableEffect
     DisposableEffect(routeType) {
@@ -491,7 +473,9 @@ fun ActivityContent(routeType: RouteType) {
                                 timeStamp = date,
                                 routeGrade = grade,
                                 activityTime = time,
-                                maxAltitude = maxAltitude
+                                maxAltitude = maxAltitude,
+                                latitude = doc.getDouble("latitude") ?: 0.0,
+                                longitude = doc.getDouble("longitude") ?: 0.0
                             )
                         }.sortedByDescending { it.timeStamp }
 
@@ -514,7 +498,16 @@ fun ActivityContent(routeType: RouteType) {
         }
 
         items(activities) { activity ->
-            ClimbCard(activity)
+            ClimbCard(
+                activity,
+                onDeleteClick = {
+                    activityToDelete = activity
+                    showDeleteDialog = true
+                },
+                onLocationClick = {lat, lng ->
+                    navController.navigate("viewLocation/$lat/$lng")
+                }
+            )
         }
     }
 }
@@ -570,7 +563,24 @@ fun ActivitiesPage(
                 .padding(paddingValues)
         ) {
             // Display content based on selected route type
-            ActivityContent(routeType = selectedRouteType)
+            ActivityContent(routeType = selectedRouteType, navController = navController)
         }
     }
+}
+
+// Delete Activity
+fun deleteActivity(
+    routeType: RouteType,
+    userId: String,
+    activityId: String
+) {
+    val db = Firebase.firestore
+
+    db.collection("users")
+        .document(userId)
+        .collection("activities")
+        .document(routeType.name)
+        .collection("sessions")
+        .document(activityId)
+        .delete()
 }
