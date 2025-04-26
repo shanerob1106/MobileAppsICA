@@ -140,7 +140,9 @@ fun searchUsers(searchText: String, onResult: (List<ProfileData>) -> Unit) {
                         firstName = document.getString("firstName") ?: "",
                         lastName = document.getString("lastName") ?: "",
                         followers = document.get("followers") as List<String>,
-                        following = document.get("following") as List<String>
+                        following = document.get("following") as List<String>,
+                        userLongitude = document.getDouble("userLongitude"),
+                        userLatitude = document.getDouble("userLatitude")
                     )
                 } else {
                     null

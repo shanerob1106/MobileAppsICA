@@ -3,6 +3,7 @@ package com.example.sendit.pages.interaction
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -41,13 +42,20 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.tasks.await
+import com.example.sendit.data.UserLocationData
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 @Composable
-fun CurrentUserLocation() {
+fun ViewFriendsMap() {
     val context = LocalContext.current
     var userLocation by remember { mutableStateOf<LatLng?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var locationError by remember { mutableStateOf<String?>(null) }
+
+    var userProfiles by remember { mutableStateOf<List<UserLocationData>>(emptyList()) }
+    val db = Firebase.firestore
 
     // Check location permission
     val hasLocationPermission = remember {
@@ -56,6 +64,46 @@ fun CurrentUserLocation() {
             Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
     }
+
+    LaunchedEffect(Unit) {
+        val currentUser = Firebase.auth.currentUser
+        if (currentUser != null) {
+            try {
+                val currentUserDoc = db.collection("users").document(currentUser.uid).get().await()
+
+                val following = currentUserDoc.get("following") as? List<String> ?: emptyList()
+                val followers = currentUserDoc.get("followers") as? List<String> ?: emptyList()
+
+                val mutualConnections = following.intersect(followers.toSet())
+
+                if (mutualConnections.isNotEmpty()) {
+                    val mutualUserProfiles = mutableListOf<UserLocationData>()
+
+                    // For each mutual userId, fetch their profile
+                    for (userId in mutualConnections) {
+                        val userDoc = db.collection("users").document(userId).get().await()
+                        val userName = userDoc.getString("username") ?: "No Name Found"
+                        val userLong = userDoc.getDouble("userLongitude")
+                        val userLat = userDoc.getDouble("userLatitude")
+
+                        if (userLong != null && userLat != null) {
+                            mutualUserProfiles.add(UserLocationData(userName, userLong, userLat))
+                        }
+                    }
+
+                    userProfiles = mutualUserProfiles
+                } else {
+                    // No mutual connections
+                    userProfiles = emptyList()
+                }
+            } catch (e: Exception) {
+                locationError = "Error fetching mutual user profiles: ${e.message}"
+            }
+        }
+    }
+
+
+
 
     // Get user's current location
     LaunchedEffect(key1 = hasLocationPermission) {
@@ -80,8 +128,8 @@ fun CurrentUserLocation() {
     // Camera position state
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(
-            userLocation ?: LatLng(0.0, 0.0), // Default to (0,0) if user location not available
-            userLocation?.let { 15f } ?: 2f // Zoom level 15 for user location, 2 for world view
+            userLocation ?: LatLng(0.0, 0.0),
+            userLocation?.let { 15f } ?: 2f
         )
     }
 
@@ -126,6 +174,16 @@ fun CurrentUserLocation() {
                             title = "Your Location",
                             snippet = "Lat: ${position.latitude}, Lng: ${position.longitude}"
                         )
+                    }
+
+                    // Add markers for all other users
+                    userProfiles.forEach { profile ->
+                        Marker(
+                            state = MarkerState(LatLng(profile.userLatitude!!, profile.userLongitude!!)),
+                            title = profile.userName,
+                            snippet = "Lat: ${profile.userLatitude}, Lng: ${profile.userLongitude}"
+                        )
+                        Log.d("MapScreen", "Adding marker for user: ${profile.userName}")
                     }
                 }
             }

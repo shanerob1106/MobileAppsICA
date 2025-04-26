@@ -16,7 +16,7 @@ import com.example.sendit.pages.activity.RouteType
 import com.example.sendit.pages.activity.StartActivity
 import com.example.sendit.pages.interaction.AIPage
 import com.example.sendit.pages.interaction.ChatPage
-import com.example.sendit.pages.interaction.CurrentUserLocation
+import com.example.sendit.pages.interaction.ViewFriendsMap
 import com.example.sendit.pages.interaction.MapScreen
 import com.example.sendit.pages.interaction.SearchPage
 import com.example.sendit.pages.interaction.ViewLocationScreen
@@ -95,7 +95,7 @@ fun SendItNavHost(
         }
 
         composable(Screen.UserMap.route) {
-            CurrentUserLocation()
+            ViewFriendsMap()
         }
 
         composable(Screen.Map.route) {
