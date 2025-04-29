@@ -33,19 +33,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import com.example.sendit.data.UserLocationData
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.tasks.await
-import com.example.sendit.data.UserLocationData
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
 
 @Composable
 fun ViewFriendsMap() {
@@ -101,8 +101,6 @@ fun ViewFriendsMap() {
             }
         }
     }
-
-
 
 
     // Get user's current location
@@ -179,7 +177,12 @@ fun ViewFriendsMap() {
                     // Add markers for all other users
                     userProfiles.forEach { profile ->
                         Marker(
-                            state = MarkerState(LatLng(profile.userLatitude!!, profile.userLongitude!!)),
+                            state = MarkerState(
+                                LatLng(
+                                    profile.userLatitude!!,
+                                    profile.userLongitude!!
+                                )
+                            ),
                             title = profile.userName,
                             snippet = "Lat: ${profile.userLatitude}, Lng: ${profile.userLongitude}"
                         )

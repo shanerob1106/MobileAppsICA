@@ -332,8 +332,10 @@ fun ActivityStatsCard(
             ) {
                 // Route Type Header
                 Text(
-                    text = "${routeType.name.lowercase()
-                        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }} - Activity",
+                    text = "${
+                        routeType.name.lowercase()
+                            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                    } - Activity",
                     fontSize = 28.sp,
                     style = TextStyle(color = MaterialTheme.colorScheme.primary)
                 )

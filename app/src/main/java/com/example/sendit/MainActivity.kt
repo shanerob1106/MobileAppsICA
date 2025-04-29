@@ -1,60 +1,74 @@
 package com.example.sendit
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.compose.rememberNavController
+import com.example.sendit.pages.interaction.getUserLocation
 import com.example.sendit.ui.theme.SendItTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.ktx.Firebase
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
-import com.example.sendit.pages.interaction.getUserLocation
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.firestore.ktx.firestore
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import com.google.firebase.auth.ktx.auth
+import kotlinx.coroutines.tasks.await
+
+private const val TAG = "MainActivity"
+private const val LOCATION_UPDATE_INTERVAL = 120000L // 2 minutes
 
 class MainActivity : ComponentActivity() {
-    @RequiresApi(Build.VERSION_CODES.O)
     private lateinit var auth: FirebaseAuth
     private var isUserLoggedIn by mutableStateOf(false)
 
     private var locationUpdateJob: Job? = null
-    private val coroutineScope = CoroutineScope(Dispatchers.IO)
+
+    // Permission launcher
+    private val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                startUpdatingLocation()
+            } else {
+                Log.w("MainActivity", "Location permission denied")
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         auth = Firebase.auth
-
         isUserLoggedIn = auth.currentUser != null
 
-        // Check if user is already logged in
+        // Setup auth state listener
         auth.addAuthStateListener { firebaseAuth ->
-            isUserLoggedIn = firebaseAuth.currentUser != null
+            val userLoggedIn = firebaseAuth.currentUser != null
+            if (userLoggedIn != isUserLoggedIn) {
+                isUserLoggedIn = userLoggedIn
 
-            if (isUserLoggedIn) {
-                checkLocationPermissionAndStart()
-            } else {
-                stopUpdatingLocation()
+                if (isUserLoggedIn) {
+                    checkLocationPermissionAndStart()
+                } else {
+                    stopUpdatingLocation()
+                }
             }
         }
-
 
         enableEdgeToEdge()
         setContent {
@@ -67,63 +81,98 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+
+        // Start location updates if user is already logged in
+        if (isUserLoggedIn) {
+            checkLocationPermissionAndStart()
+        }
     }
 
+    override fun onStart() {
+        super.onStart()
+        // Resume location updates if user is logged in
+        if (isUserLoggedIn && locationUpdateJob?.isActive != true) {
+            checkLocationPermissionAndStart()
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Pause location updates when app is in background
+        stopUpdatingLocation()
+    }
+
+    // Check location permissions and then start
     private fun checkLocationPermissionAndStart() {
-        if (ContextCompat.checkSelfPermission(
+        when {
+            ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            startUpdatingLocation()
-        } else {
-            requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-        }
-    }
-
-    private val requestPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
-            if (isGranted) {
+            ) == PackageManager.PERMISSION_GRANTED -> {
                 startUpdatingLocation()
-            } else {
-                // Permission denied - maybe show a dialog explaining why it's needed
             }
-        }
 
-    private fun startUpdatingLocation() {
-        if (locationUpdateJob?.isActive == true) return
-
-        locationUpdateJob = coroutineScope.launch {
-            val db = Firebase.firestore
-            val auth = Firebase.auth
-            val context = this@MainActivity
-
-            while (true) {
-                val currentUser = auth.currentUser
-                if (currentUser != null) {
-                    val location = getUserLocation(context)
-                    location?.let { loc ->
-                        val userDocRef = db.collection("users").document(currentUser.uid)
-                        userDocRef.update(
-                            mapOf(
-                                "userLatitude" to loc.latitude,
-                                "userLongitude" to loc.longitude
-                            )
-                        ).addOnSuccessListener {
-                            // Successfully updated location
-                        }.addOnFailureListener { e ->
-                            // Handle error if needed
-                        }
-                    }
+            shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) -> {
+                lifecycleScope.launch {
+                    requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                 }
-                delay(120000L) // 2 minutes
+            }
+
+            else -> {
+                requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
             }
         }
     }
 
+    // Start updating the user location
+    @SuppressLint("RepeatOnLifecycleWrongUsage")
+    private fun startUpdatingLocation() {
+        locationUpdateJob?.cancel()
+        locationUpdateJob = lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                val currentUser = auth.currentUser ?: return@repeatOnLifecycle
+
+                try {
+                    while (true) {
+                        updateUserLocation(currentUser.uid)
+                        delay(LOCATION_UPDATE_INTERVAL)
+                    }
+                } catch (e: CancellationException) {
+                    Log.d(TAG, "Location updates cancelled")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error updating location", e)
+                }
+            }
+        }
+    }
+
+    // Update the user location
+    private suspend fun updateUserLocation(userId: String) {
+        try {
+            val db = Firebase.firestore
+            val location = getUserLocation(this)
+
+            if (location != null) {
+                val userDocRef = db.collection("users").document(userId)
+                userDocRef.update(
+                    mapOf(
+                        "userLatitude" to location.latitude,
+                        "userLongitude" to location.longitude,
+                        "lastLocationUpdate" to System.currentTimeMillis()
+                    )
+                ).await()
+                Log.d(TAG, "Location updated successfully")
+            } else {
+                Log.w(TAG, "Could not get user location")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update location", e)
+        }
+    }
+
+    // Stop updating the user location
     private fun stopUpdatingLocation() {
         locationUpdateJob?.cancel()
+        locationUpdateJob = null
     }
 }
-
-

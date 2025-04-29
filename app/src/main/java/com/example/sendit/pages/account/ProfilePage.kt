@@ -228,7 +228,7 @@ fun ProfilePage(
                         // Placeholder with first character of username
                         Box(
                             modifier = Modifier
-                                .size(150.dp)
+                                .size(100.dp)
                                 .background(
                                     color = MaterialTheme.colorScheme.primary,
                                     shape = MaterialTheme.shapes.small
