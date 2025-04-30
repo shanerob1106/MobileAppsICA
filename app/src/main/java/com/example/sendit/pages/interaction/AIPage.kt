@@ -29,16 +29,13 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -89,26 +86,22 @@ data class ChatMessage(
 // Main Composable for AI Page
 @Composable
 fun AIPage(modifier: Modifier = Modifier) {
-
     // Main values
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(false) }
     var serverAddress by remember { mutableStateOf("86.4.67.83:11434") }
 
-    // User input
     var userInput by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
 
-    // View Model to hold image information in memory
     val viewModel = viewModel<AIPageViewModel>()
     var selectedImageBitmap = viewModel.selectedImageBitmap.value
 
-    // Chat messages state
     val chatMessages = remember { mutableStateListOf<ChatMessage>() }
     val listState = rememberLazyListState()
 
-    // Initial greeting message - Not actual AI
+    // Greeting message
     LaunchedEffect(Unit) {
         chatMessages.add(
             ChatMessage(
@@ -118,109 +111,39 @@ fun AIPage(modifier: Modifier = Modifier) {
         )
     }
 
-    // Auto-scroll to bottom when new messages arrive
+    // Auto-scroll
     LaunchedEffect(chatMessages.size) {
         if (chatMessages.isNotEmpty()) {
             listState.animateScrollToItem(chatMessages.size - 1)
         }
     }
 
-    // Image selector launcher
-    val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let {
-            try {
+    val imageLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let {
                 val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
                 val bitmap = BitmapFactory.decodeStream(inputStream)
-                viewModel.selectedImageBitmap.value = bitmap
                 selectedImageBitmap = bitmap
-
-                // Add user message with image
-                chatMessages.add(
-                    ChatMessage(
-                        content = "[Image sent]",
-                        isFromUser = true,
-                        image = bitmap
-                    )
-                )
-
-                // Add AI "thinking" message
-                val thinkingMessageId = UUID.randomUUID().toString()
-                chatMessages.add(
-                    ChatMessage(
-                        id = thinkingMessageId,
-                        content = "Analyzing image...",
-                        isFromUser = false
-                    )
-                )
-
-                isLoading = true
-
-                coroutineScope.launch {
-                    try {
-                        // Convert bitmap to base64
-                        val base64Image = withContext(Dispatchers.IO) {
-                            bitmapToBase64(bitmap)
-                        }
-
-                        // Send image to Ollama API
-                        val response = withContext(Dispatchers.IO) {
-                            sendImageToOllama(base64Image, serverAddress)
-                        }
-
-                        // Replace thinking message with response
-                        val responseIndex = chatMessages.indexOfFirst { it.id == thinkingMessageId }
-                        if (responseIndex >= 0) {
-                            chatMessages[responseIndex] = ChatMessage(
-                                id = thinkingMessageId,
-                                content = response ?: "I couldn't analyze that image properly.",
-                                isFromUser = false
-                            )
-                        }
-                    } catch (e: Exception) {
-                        // Replace thinking message with error
-                        val responseIndex = chatMessages.indexOfFirst { it.id == thinkingMessageId }
-                        if (responseIndex >= 0) {
-                            chatMessages[responseIndex] = ChatMessage(
-                                id = thinkingMessageId,
-                                content = "Sorry, I encountered an error: ${e.message}",
-                                isFromUser = false
-                            )
-                        }
-                        e.printStackTrace()
-                    } finally {
-                        isLoading = false
-                        selectedImageBitmap = null
-                    }
-                }
-            } catch (e: Exception) {
-                chatMessages.add(
-                    ChatMessage(
-                        content = "Sorry, I couldn't load that image: ${e.message}",
-                        isFromUser = false
-                    )
-                )
             }
         }
-    }
 
-    // Function to send text message
     fun sendTextMessage() {
-        if (userInput.isBlank()) return
+        if (userInput.isBlank() && selectedImageBitmap == null) return
 
-        // Trim input
-        val trimmedInput = userInput.trim()
+        val inputText = userInput.trim()
         userInput = ""
         focusManager.clearFocus()
 
-        // Add user message
+        // Add user message (with optional image)
         chatMessages.add(
             ChatMessage(
-                content = trimmedInput,
-                isFromUser = true
+                content = if (inputText.isEmpty()) "[Image sent]" else inputText,
+                isFromUser = true,
+                image = selectedImageBitmap
             )
         )
 
-        // Add thinking message from AI
+        // Thinking message for AI response
         val thinkingMessageId = UUID.randomUUID().toString()
         chatMessages.add(
             ChatMessage(
@@ -232,45 +155,49 @@ fun AIPage(modifier: Modifier = Modifier) {
 
         isLoading = true
 
-        // Send text to Ollama API
         coroutineScope.launch {
             try {
                 val response = withContext(Dispatchers.IO) {
-                    sendTextToOllama(trimmedInput, serverAddress, chatMessages)
+                    if (selectedImageBitmap != null) {
+                        val base64Image = bitmapToBase64(selectedImageBitmap!!)
+                        sendImageToOllama(base64Image, serverAddress)
+                    } else {
+                        sendTextToOllama(inputText, serverAddress, chatMessages)
+                    }
                 }
 
-                // Respond with AI message
-                val responseIndex = chatMessages.indexOfFirst { it.id == thinkingMessageId }
-                if (responseIndex >= 0) {
-                    chatMessages[responseIndex] = ChatMessage(
+                // Replace thinking message
+                val index = chatMessages.indexOfFirst { it.id == thinkingMessageId }
+                if (index >= 0) {
+                    chatMessages[index] = ChatMessage(
                         id = thinkingMessageId,
-                        content = response ?: "I'm not sure how to respond to that.",
+                        content = response ?: "No response.",
                         isFromUser = false
                     )
                 }
             } catch (e: Exception) {
-                // Error message while thinking
-                val responseIndex = chatMessages.indexOfFirst { it.id == thinkingMessageId }
-                if (responseIndex >= 0) {
-                    chatMessages[responseIndex] = ChatMessage(
+                val index = chatMessages.indexOfFirst { it.id == thinkingMessageId }
+                if (index >= 0) {
+                    chatMessages[index] = ChatMessage(
                         id = thinkingMessageId,
-                        content = "Sorry, I encountered an error: ${e.message}",
+                        content = "Error: ${e.message}",
                         isFromUser = false
                     )
                 }
-                e.printStackTrace()
             } finally {
                 isLoading = false
+                selectedImageBitmap = null
             }
         }
     }
 
+    // UI starts here
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Top bar with settings
+        // Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -278,47 +205,13 @@ fun AIPage(modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                "AI Assistant",
-                style = MaterialTheme.typography.headlineSmall
-            )
-
-// DEBUG SERVER ADDRESS
-//            // Server settings dialog trigger
-//            var showServerDialog by remember { mutableStateOf(false) }
-//            IconButton(onClick = { showServerDialog = true }) {
-//                Icon(Icons.Default.Add, contentDescription = "Settings")
-//            }
-//
-//            // Server settings dialog
-//            if (showServerDialog) {
-//                AlertDialog(
-//                    onDismissRequest = { showServerDialog = false },
-//                    title = { Text("Ollama Server Settings") },
-//                    text = {
-//                        OutlinedTextField(
-//                            value = serverAddress,
-//                            onValueChange = { serverAddress = it },
-//                            label = { Text("Server Address") },
-//                            singleLine = true,
-//                            modifier = Modifier.fillMaxWidth()
-//                        )
-//                    },
-//                    confirmButton = {
-//                        Button(onClick = { showServerDialog = false }) {
-//                            Text("Save")
-//                        }
-//                    }
-//                )
-//            }
+            Text("AI Assistant", style = MaterialTheme.typography.headlineSmall)
         }
 
-        // Chat messages
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-        ) {
+        // Chat history
+        Box(modifier = Modifier
+            .weight(1f)
+            .fillMaxWidth()) {
             LazyColumn(
                 state = listState,
                 contentPadding = PaddingValues(16.dp),
@@ -330,7 +223,6 @@ fun AIPage(modifier: Modifier = Modifier) {
                 }
             }
 
-            // Loading indicator
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier
@@ -340,7 +232,7 @@ fun AIPage(modifier: Modifier = Modifier) {
             }
         }
 
-        // Input area
+        // Input Row
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -348,52 +240,66 @@ fun AIPage(modifier: Modifier = Modifier) {
             shape = RoundedCornerShape(24.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Image select button
-                IconButton(onClick = { imageLauncher.launch("image/*") }) {
-                    Icon(
-                        // Custom XML image_icon
-                        painter = painterResource(id = R.drawable.image_icon),
-                        contentDescription = "Attach Image",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+            Column(modifier = Modifier.padding(8.dp)) {
+                // Image thumbnail (if selected)
+                selectedImageBitmap?.let { bitmap ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            bitmap = bitmap.asImageBitmap(),
+                            contentDescription = "Selected Image",
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        IconButton(onClick = { selectedImageBitmap = null }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Remove Image"
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                // Text input
-                TextField(
-                    value = userInput,
-                    onValueChange = { userInput = it },
-                    placeholder = { Text("Type a message...") },
-                    modifier = Modifier.weight(1f),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(onSend = { sendTextMessage() })
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { imageLauncher.launch("image/*") }) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.image_icon),
+                            contentDescription = "Attach Image",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
 
-                // Send button
-                IconButton(
-                    onClick = { sendTextMessage() },
-                    enabled = userInput.isNotBlank()
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Send Message",
-                        tint = if (userInput.isBlank())
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                        else
-                            MaterialTheme.colorScheme.primary
+                    TextField(
+                        value = userInput,
+                        onValueChange = { userInput = it },
+                        placeholder = { Text("Type a message...") },
+                        modifier = Modifier.weight(1f),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent
+                        ),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(onSend = { sendTextMessage() })
                     )
+
+                    IconButton(
+                        onClick = { sendTextMessage() },
+                        enabled = userInput.isNotBlank() || selectedImageBitmap != null
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "Send Message",
+                            tint = if (userInput.isBlank() && selectedImageBitmap == null)
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                            else
+                                MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }
@@ -447,7 +353,7 @@ fun ChatMessageItem(message: ChatMessage) {
                     modifier = Modifier.widthIn(max = 280.dp)
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
-                        // If there's an image, display it
+                        // Display image if attached
                         message.image?.let { img ->
                             Image(
                                 bitmap = img.asImageBitmap(),
@@ -497,16 +403,17 @@ fun ChatMessageItem(message: ChatMessage) {
 // Convert Bitmap to Base64 String
 fun bitmapToBase64(bitmap: Bitmap): String {
     val stream = ByteArrayOutputStream()
-    bitmap.compress(Bitmap.CompressFormat.JPEG, 80, stream) // Reduced quality to 80% for smaller payload
+    bitmap.compress(Bitmap.CompressFormat.JPEG,80, stream )
     val byteArray = stream.toByteArray()
     return Base64.encodeToString(byteArray, Base64.DEFAULT)
 }
 
+// Post text to Ollama API
 fun sendTextToOllama(text: String, serverAddress: String, chatHistory: List<ChatMessage>): String? {
     val client = OkHttpClient.Builder()
-        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-        .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+        .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
         .build()
 
     val formattedHistory = buildString {
@@ -555,15 +462,15 @@ fun sendTextToOllama(text: String, serverAddress: String, chatHistory: List<Chat
 // Post image to Ollama API
 fun sendImageToOllama(base64Image: String, serverAddress: String): String? {
     val client = OkHttpClient.Builder()
-        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-        .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+        .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
         .build()
 
-    // Format the image data correctly for Ollama API
+    // Format base64 into JSONArray
     val jsonRequest = JSONObject().apply {
 
-        // Using Gemma3:4b, can use gemma3:12b for better response
+        // Using Gemma3:4b, can use gemma3:4b for better response
         put("model", "gemma3:4b")
         put("prompt", "Describe this image in detail and ask a follow-up question about it.")
         put("stream", false)

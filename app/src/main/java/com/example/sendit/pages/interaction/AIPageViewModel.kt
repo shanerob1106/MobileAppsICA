@@ -1,8 +1,8 @@
 package com.example.sendit.pages.interaction
 
 import android.graphics.Bitmap
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 
 // ViewModel for Selected AI Image
 class AIPageViewModel : ViewModel() {
